@@ -1,4 +1,5 @@
 pynkey
 ======
 
-test
+Translation of junkey to python.
+
