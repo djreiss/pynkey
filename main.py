@@ -17,8 +17,8 @@ ratios, genome_seqs, anno, string_net, op_table, all_genes = \
 # if nprocs() > 1 pre_load_child_nodes(); end ## send ratios, string_net, k_clust, etc. over to children
 # gc()
 
-# ## Save junkey code for safe keeping
-# junkey_code = load_junkey_code(".");
+# Save all pynkey code for safe keeping
+pynkey_code = init.load_pynkey_code()
 
 # ##stop()
 

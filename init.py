@@ -46,13 +46,11 @@ def pynkey_init(organism, k_clust, ratios_file):
     all_genes = np.unique( np.append( all_genes, anno.index.values ) )
     all_genes = np.unique( np.append( all_genes, [string_net.protein1.values, string_net.protein2.values] ) )
     all_genes = np.unique( np.append( all_genes, [op_table.SysName1.values, op_table.SysName2.values] ) )
-    all_genes = all_genes[ all_genes != nan ]
+    all_genes = all_genes[ all_genes != NA ]
     print all_genes.shape
 
-    # gene_regex = get_regex(collect(keys(all_genes)))
-    # println(gene_regex)
-    
-    # ##all_rows::Vector{Int} = [ all_genes[ g ] for g in rownames(x) ] ##pre-define this (not used anymore?)
+    gene_regex = get_regex( all_genes )
+    print gene_regex
     
     # ## Get all upstream seqs and their bgFreqs
     # ## TODO: Need to add 0's for k-mers that are NOT in the sequences.
@@ -176,14 +174,24 @@ def load_op_table(organism):
         
     return op_table
 
-## Load the junkey code as text so it can be stored in the run results
-# function load_junkey_code(path)
-#     files = system(`ls $path/`)
-#     files = files[ [ endswith( f, ".jl" ) for f in files ] ]
-#     files = files[ files .!= "nanopond-1.9C.jl" ]
-#     code = { f => readall( "./$f" ) for f in files }
-#     code
-# end
+## Load the pynkey code as text so it can be stored in the run results for rerunning
+## from here: http://code.activestate.com/recipes/496889-dynamically-determine-execution-path-of-a-file/
+import os, sys, inspect
+def load_pynkey_code():
+    def execution_path(filename):
+        return os.path.join(os.path.dirname(inspect.getfile(sys._getframe(1))), filename)
+    exec_path = execution_path('') 
+    print exec_path
+    files = np.array( os.listdir(exec_path) )
+    files = files[ np.array( [f.endswith('.py') for f in files] ) ]
+    print files
+    code = {}
+    for f in files:
+        fo = open( exec_path + '/' + f, 'r' )
+        lines = fo.readlines()
+        fo.close()
+        code[f] = lines
+    return code
 
 # function init_biclusters( x, k_clust, method="kmeans" ) 
 #     ## Init via kmeans -- TODO: other methods (including random)
@@ -223,24 +231,30 @@ def load_op_table(organism):
 #     clusters
 # end
 
-# #get_regex( strings::Vector{ASCIIString} ) = get_regex( strings, 2 )
-
 def get_regex( strings, min_ignore=2 ):
     nchar = np.array( [ len(i) for i in strings ] )
     out = ''
-    for i in arange( nchar.max() ):
-#         d = Dict{Char,Int64}()
-#         for j=1:length(strings)
-#             if i > nchar[j] continue; end
-#             c::Char = strings[j][i]
-# 	    d[c] = get(d,c,0) + 1
-#         end
-#         if isempty(d) break; end
-#         tmp = ""
-#         for c::Char=collect(keys(d)) if get(d,c,0) > min_ignore tmp = "$tmp$c"; end; end ## ignore values with <=2 occurences
-#         if length(tmp) > 1 tmp = "[$tmp]"; end
-#         if sum(collect(values(d))) < length(strings) * 0.95 tmp = "$tmp?"; end
-#         if tmp != "" out = "$out$tmp"; end
-#     end
-#     out
-# end
+    for i in np.arange( nchar.max() ):
+        d = {}
+        for str in strings:
+            if i >= len(str):
+                continue
+            c = str[i]
+ 	    if c in d:
+                d[c] = d[c] + 1
+            else:
+                d[c] = 1
+        if len(d) == 0:
+            break
+        tmp = ''
+        for c in d:
+            if d[c] > min_ignore: ## ignore values with <=2 occurences
+                tmp = tmp + c ##''.join([tmp, c]) ##'{0}{1}'.format(tmp, c)
+        if len(tmp) > 1:          ## add brackets around it if >1 different characters
+            tmp = '[' + tmp + ']' ##''.join(['[', tmp, ']']) ##'[{0}]'.format(tmp)
+        if sum(d.values()) < len(strings) * 0.95:  ## add '?' after it if infrequent
+            tmp = tmp + '?' ##''.join([tmp, '?']) ##'{0}?'.format(tmp)
+        if tmp != '':             ## append it
+            out = out + tmp ##''.join([out, tmp]) ##'{0}{1}'.format(out, tmp)
+    return out
+
