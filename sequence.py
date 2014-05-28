@@ -31,7 +31,7 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
     for gene in genes:
         upstream_gene = gene
         if gene not in anno.index: ##anno_ind == 0 ##! any(anno["sysName"].data .== gene) 
-            seqs[ gene ] = pd.DataFrame( {'upstream_gene':[upstream_gene], 'seq':['']}, index=[gene] )
+            seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':['']}, index=['gene'] )
             continue
         gene_anno = anno.ix[gene, :]
         if op_shift and op_table.shape[0] > 0:
@@ -46,18 +46,23 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
         tmp_anno = anno.ix[upstream_gene, :]
         strnd = tmp_anno['strand']
         strt = tmp_anno['start']
-        rng = strt + distance if strnd == '+' else strt - np.array( [distance[1], distance[0]] ) ## distance.reverse() actually reverses the array.
+        rng = strt + distance if strnd == '+' else strt - np.array( [distance[1], distance[0]] ) ## distance.reverse() actually reverses the array inplace.
         genome_seq = get_genome_seq( genome_seqs, tmp_anno['scaffoldId'] )
         if rng[1] > len(genome_seq):
             rng[1] = len(genome_seq)
         seq = genome_seq[ rng[0]:rng[1] ]
         #if debug println( "$gene $upstream_gene $strnd $strt $rng" ); end
-        ##println("$gene $upstream_gene $strnd $strt $rng $seq")
+        #print gene + ' ' + upstream_gene + ' ' + strnd + ' ' + strt + ' ' + rng + ' ' + seq
         if strnd == "-":
             seq = seq.reverse_complement()
-        seqs[ gene ] = pd.DataFrame( {'upstream_gene':[upstream_gene], 'seq':[seq.tostring()]}, index=[gene] )
-    ##out = rbind(seqs)
-    return seqs
+        #print gene
+        seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':[seq.tostring()]}, index=['gene'] )
+
+    #print seqs.keys()
+    print len(seqs); print(seqs[genes[0]])
+    out = pd.concat(seqs, ignore_index=True)
+    out.index = out.gene
+    return out
 
 # function filter_sequences( seqs::DataFrame, distance=distance_search, remove_repeats=true, remove_atgs=true )
 #     seqs = seqs[ seqs["seq"] .!= "", : ] ## remove all empty sequences; they cause heartburn.

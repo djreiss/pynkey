@@ -49,7 +49,10 @@ def pynkey_init(organism, k_clust, ratios_file):
     all_genes = np.unique( np.append( all_genes, anno.index.values ) )
     all_genes = np.unique( np.append( all_genes, [string_net.protein1.values, string_net.protein2.values] ) )
     all_genes = np.unique( np.append( all_genes, [op_table.SysName1.values, op_table.SysName2.values] ) )
-    all_genes = all_genes[ all_genes != NA ]
+    all_genes = np.sort(all_genes)
+    all_genes = all_genes[ all_genes != NA ] ## for some reason some are floats and they are printing as nan's but this line
+    if type(all_genes[0]) == float:          ## does not remove them so we do this line instead
+        all_genes = all_genes[1:]
     print all_genes.shape
 
     gene_regex = get_regex( all_genes )
@@ -59,8 +62,8 @@ def pynkey_init(organism, k_clust, ratios_file):
     # ## TODO: Need to add 0's for k-mers that are NOT in the sequences.
     # ##   Use generate_all_kmers() for that.
     # ## TODO: Need to include vague IUPAC symbols better
-    all_seqs = seq.get_sequences(anno.index.values, anno, genome_seqs, op_table, True, params.distance_search, False ) 
-    # all_seqs = all_seqs[ find(all_seqs[:,1].!=""), : ] 
+    all_seqs = seq.get_sequences(all_genes, anno, genome_seqs, op_table, True, params.distance_search, False ) 
+    # all_seqs = all_seqs[ all_seqs.index != NaN, : ] 
     # all_seqs = filter_sequences( all_seqs, distance_search )
 
     # all_seqs_scan = get_sequences(anno["sysName"].data,anno,genome_seqs,true,op_table,distance_scan,false); 
