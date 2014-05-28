@@ -2,8 +2,16 @@
 ## TODO: Correctly handle IUPAC
 ## TODO: Need to add remove-ATG step, and also running dust on sequences.
 
+import os
+import tempfile
+import warnings
 import pandas as pd
 import numpy as np
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import IUPAC
+from Bio import SeqIO
+
 import params
 
 def get_genome_seq( genome_seqs, scaffoldId ):
@@ -31,7 +39,8 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
     for gene in genes:
         upstream_gene = gene
         if gene not in anno.index: ##anno_ind == 0 ##! any(anno["sysName"].data .== gene) 
-            seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':['']}, index=['gene'] )
+            seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':[''], 'strand':['']}, 
+                                         index=['gene'] )
             continue
         gene_anno = anno.ix[gene, :]
         if op_shift and op_table.shape[0] > 0:
@@ -51,12 +60,12 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
         if rng[1] > len(genome_seq):
             rng[1] = len(genome_seq)
         seq = genome_seq[ rng[0]:rng[1] ]
-        #if debug println( "$gene $upstream_gene $strnd $strt $rng" ); end
-        #print gene + ' ' + upstream_gene + ' ' + strnd + ' ' + strt + ' ' + rng + ' ' + seq
+        #if debug: print gene + ' ' + upstream_gene + ' ' + strnd + ' ' + strt + ' ' + rng + ' ' + seq
         if strnd == "-":
             seq = seq.reverse_complement()
         #print gene
-        seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':[seq.tostring()]}, index=['gene'] )
+        seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':[seq.tostring()], 
+                                      'strand':[strnd]}, index=['gene'] )
 
     #print seqs.keys()
     print len(seqs); print(seqs[genes[0]])
@@ -64,39 +73,55 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
     out.index = out.gene
     return out
 
-# function filter_sequences( seqs::DataFrame, distance=distance_search, remove_repeats=true, remove_atgs=true )
-#     seqs = seqs[ seqs["seq"] .!= "", : ] ## remove all empty sequences; they cause heartburn.
+def seqs_to_seqRecord( seqs, names ):
+    return [ SeqRecord(Seq(seqs[i], IUPAC.ExtendedIUPACDNA), id=names[i]) for i in range(len(seqs)) ]
 
-#     if remove_repeats == true ##&& length( grep( "NNNNNN", seqs ) ) <= 1
-#        ##if verbose println( "Removing low-complexity regions from sequences.\n" ); end
-#        fname = tempname()
-#        writeFasta( seqs, fname )
-#        tmp = system( `./progs/dust $fname` ) ## note dust as an optional numeric parameter -- what does it mean?
-#        rm( fname )
-#        (fname,io) = mktemp()
-#        for line in tmp write(io, "$(line)\n"); end
-#        close( io )
-#        seqs_new = readFastaDNA( fname )
-#        rm( fname )
-#        if size(seqs,1) != size(seqs_new,1) 
-#            warn( "Remove low complexity failed - skipping!" )
-#        elseif all(seqs["gene"] .== seqs_new["gene"])
-#            seqs_new["upstream_gene"] = seqs["upstream_gene"]
-#            seqs = seqs_new
-#        end
-#     end
+def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True, remove_atgs=True ):
+     seqs = seqs[ seqs.seq != '' ] ## remove all empty sequences; they cause heartburn.
 
-#     if remove_atgs && any( distance .< 0 ) 
-#         nnnn = convert(Vector{Uint8}, "NNNN")
-#         for i in 1:size(seqs,1)
-#             ss = convert(Vector{Uint8}, seqs["seq"][i])
-#             ss[ (distance[2]+1):(distance[2]+4) ] = nnnn  ## Mask out ATGs (why 4 instead of 3?)
-#             seqs["seq"][i] = convert(ASCIIString, ss)
-#         end
-#     end
+     if remove_repeats: ##&& len( grep( "NNNNNN", seqs ) ) <= 1
+         ##if verbose: println( "Removing low-complexity regions from sequences.\n" )
+         ## Need to convert array of strings back to sequence record for output via biopython:
+         tmp = [ SeqRecord(Seq(seqs.seq.values[i], IUPAC.ExtendedIUPACDNA), id=seqs.gene.values[i], 
+                           name=seqs.gene.values[i], description=seqs.gene.values[i]) for i in range(len(seqs)) ]
+         fname = tempfile.mktemp() 
+         handle = open(fname, 'w')
+         SeqIO.write(tmp, handle, "fasta")
+         handle.close()
 
-#     seqs
-# end
+         tmp = os.popen( './progs/dust %s' % fname ).read() ## note dust has an optional numeric parameter -- for what?
+         os.unlink( fname )
+         fname = tempfile.mktemp()
+         handle = open(fname, 'w')
+         handle.write(tmp)
+         handle.close()
+
+         handle = open(fname, 'r')
+         seqs_new = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+         handle.close()
+         os.unlink( fname )
+
+         if seqs.shape[0] != len(seqs_new):
+             warnings.warn("Remove low complexity failed - skipping!" )
+         else:
+             out = seqs.copy()
+             for gene in seqs.gene:
+                 newseq = seqs_new[gene].seq.tostring()
+                 out.seq[gene] = newseq
+             seqs = out
+
+     if remove_atgs and np.any( distance < 0 ): 
+         nnnn = 'NNNN'
+         for i in seqs.index:
+             ss = seqs.seq[i]
+             ##ss[ (distance[1]+0):(distance[1]+4) ] = nnnn  ## Mask out ATGs (why 4 instead of 3?)
+             if seqs.strand[i] == '-':
+                 ss = ss[:(distance[1]-1)] + nnnn + ss[(distance[1]+3):]
+             elif seqs.strand[i] == '+':
+                 ss = ss[:(len(ss)-distance[1]-1)] + nnnn + ss[(len(ss)-distance[1]+3):]
+             ##print i; print seqs.strand.values[i]; print seqs.seq.values[i]; print ss
+             seqs.seq[i] = ss 
+     return seqs
 
 # ## Create DataFrame for multiple sequences; same format as get_sequences(bicluster)
 # function readFastaDNA( fname ) 

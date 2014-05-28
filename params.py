@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 
 print 'params'
 
@@ -47,3 +48,7 @@ avg_clusters_per_gene = 1.3
 ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) --
 ##     may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high
 max_improvements_per_iter = round(min(k_clust/2, 100))
+
+distance_search = np.array(distance_search)
+distance_scan = np.array(distance_scan)
+motif_width_range = np.array(motif_width_range)

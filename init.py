@@ -62,9 +62,11 @@ def pynkey_init(organism, k_clust, ratios_file):
     # ## TODO: Need to add 0's for k-mers that are NOT in the sequences.
     # ##   Use generate_all_kmers() for that.
     # ## TODO: Need to include vague IUPAC symbols better
-    all_seqs = seq.get_sequences(all_genes, anno, genome_seqs, op_table, True, params.distance_search, False ) 
-    # all_seqs = all_seqs[ all_seqs.index != NaN, : ] 
-    # all_seqs = filter_sequences( all_seqs, distance_search )
+    all_seqs = seq.get_sequences(all_genes, anno, genome_seqs, op_table, True, params.distance_search, False) 
+    print all_seqs.head()
+    all_seqs = seq.filter_sequences(all_seqs, params.distance_search)
+    print all_seqs.head()
+
 
     # all_seqs_scan = get_sequences(anno["sysName"].data,anno,genome_seqs,true,op_table,distance_scan,false); 
     # all_seqs_scan = all_seqs_scan[ find(all_seqs_scan[:,1].!=""), : ]
