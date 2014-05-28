@@ -1,12 +1,14 @@
-## TODO: handle fasta files w/ multiple entries. Right now, concatenates them all into one seq.
+## DONE: handle fasta files w/ multiple entries. Right now, concatenates them all into one seq.
 ## TODO: Correctly handle IUPAC
-## TODO: Need to add remove-ATG step, and also running dust on sequences.
+## DONE: Need to add remove-ATG step, and also running dust on sequences.
 
 import os
 import tempfile
 import warnings
+
 import pandas as pd
 import numpy as np
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
@@ -14,14 +16,17 @@ from Bio import SeqIO
 
 import params
 
+print 'sequence'
+
 def get_genome_seq( genome_seqs, scaffoldId ):
     sid = str(scaffoldId)
-    genome_seq_names = np.array( [ seq.name for seq in genome_seqs.values() ] )
-    ind = np.where( genome_seq_names == sid )[ 0 ]
-    if len(ind) > 0:
-        return genome_seqs.values()[ind[0]].seq
-    else:
-        return ''
+    return genome_seqs[sid].seq ## it is a SeqRecord - a dict with a string as the key
+    # genome_seq_names = np.array( [ seq.name for seq in genome_seqs.values() ] )
+    # ind = np.where( genome_seq_names == sid )[ 0 ]
+    # if len(ind) > 0:
+    #     return genome_seqs.values()[ind[0]].seq
+    # else:
+    #     return ''
 
 def get_sequences( genes, anno=None, ##=globals()['anno'], 
                    genome_seqs=None, ##=globals()['genome_seqs'], 
@@ -73,21 +78,13 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
     out.index = out.gene
     return out
 
-def seqs_to_seqRecord( seqs, names ):
-    return [ SeqRecord(Seq(seqs[i], IUPAC.ExtendedIUPACDNA), id=names[i]) for i in range(len(seqs)) ]
-
 def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True, remove_atgs=True ):
      seqs = seqs[ seqs.seq != '' ] ## remove all empty sequences; they cause heartburn.
 
      if remove_repeats: ##&& len( grep( "NNNNNN", seqs ) ) <= 1
          ##if verbose: println( "Removing low-complexity regions from sequences.\n" )
-         ## Need to convert array of strings back to sequence record for output via biopython:
-         tmp = [ SeqRecord(Seq(seqs.seq.values[i], IUPAC.ExtendedIUPACDNA), id=seqs.gene.values[i], 
-                           name=seqs.gene.values[i], description=seqs.gene.values[i]) for i in range(len(seqs)) ]
          fname = tempfile.mktemp() 
-         handle = open(fname, 'w')
-         SeqIO.write(tmp, handle, "fasta")
-         handle.close()
+         writeFasta( seqs, fname )
 
          tmp = os.popen( './progs/dust %s' % fname ).read() ## note dust has an optional numeric parameter -- for what?
          os.unlink( fname )
@@ -123,44 +120,66 @@ def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True
              seqs.seq[i] = ss 
      return seqs
 
-# ## Create DataFrame for multiple sequences; same format as get_sequences(bicluster)
-# function readFastaDNA( fname ) 
-#     str = open( fname )
-#     seq::ASCIIString = readall( str );
-#     close( str );
-#     seqs = split( seq, '>' );
-#     first_return = [search(seqs[i], '\n') for i=2:length(seqs)] ## first seq is ""
-#     seq_names = convert( Vector{ASCIIString}, [seqs[i][1:(first_return[i-1]-1)] for i=2:length(seqs)] ); 
-#     seqs = [seqs[i][(first_return[i-1]+1):end] for i=2:length(seqs)];
-#     seqs = convert( Vector{ASCIIString}, [uppercase( replace( replace( seqs[i], r">.*\n", "" ), '\n', "" ) ) for i=1:length(seqs)] );
-#     out = DataFrame( {"gene"=>seq_names, "upstream_gene"=>fill("", length(seqs)), "seq"=>seqs} );
-#     out
-# end
+## Create DataFrame for multiple sequences; same format as get_sequences(bicluster)
+## TODO: possibly store strand and upstream_gene info in fasta file for fetching later
+def readFastaDNA( fname ):
+    handle = open(fname, 'r')
+    seqs = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+    handle.close()
 
-# function writeFasta( seqs, fname ) ## Assumes seqs in DataFrame format of get_sequences()
-#     str = open( fname, "w" )
-#     for i=1:size(seqs,1)
-#         gene = seqs["gene"].data[i]
-#         seq = seqs["seq"].data[i]
-#         write( str, ">$gene\n" )
-#         write( str, "$seq\n" )
-#     end
-#     close( str )
-# end
+    out = [ pd.DataFrame( {'gene':[s.id], 'upstream_gene':[''], 'seq':[s.seq.tostring()], 'strand':['']}, 
+                           index=['gene'] ) for s in seqs.values() ]
+    out = pd.concat(out, ignore_index=True)
+    out.index = out.gene
+    return out
 
-# function revComp( seq::ASCIIString )
-#     out = Array( Uint8, length( seq ) ) ## uninitialized is faster?
-#     j = length( seq ) + 1
-#     seq = uppercase( seq )
-#     for i = 1:length( seq )
-#         c = seq[ i ]
-#         out[ j -= 1 ] = c == 'G' ? 'C' : ( c == 'C' ? 'G' : ( c == 'T' ? 'A' : ( c == 'A' ? 'T' : c ) ) )
-#     end
-#     ASCIIString( out );
-# end
+def writeFasta( seqs, fname ): ## Assumes seqs in DataFrame format of get_sequences()
+    tmp = [ SeqRecord(Seq(seqs.seq.values[i], IUPAC.ExtendedIUPACDNA()), id=seqs.gene.values[i], 
+                      name=seqs.gene.values[i], description=seqs.gene.values[i]) for i in range(len(seqs)) ]
+    handle = open(fname, 'w')
+    SeqIO.write(tmp, handle, "fasta")
+    handle.close()
 
-# const DNA_letters = [ 'G', 'A', 'T', 'C' ];
-# const DNA_letter_lookup = {'G'=>1, 'A'=>2, 'T'=>3, 'C'=>4 };
+def revComp( seq ):
+    Seq.reverse_complement(seq)
+
+DNA_letters = np.array( [ 'G', 'A', 'T', 'C' ] )
+
+def generateAllKmers( length ):
+    from sklearn.utils.extmath import cartesian
+    all_combos = pd.DataFrame( cartesian( [DNA_letters] * length ) )
+    all_combos = all_combos.apply( lambda x: ''.join( x.tolist() ), axis=1 ) ## sweet!
+    return all_combos.values
+
+# This is sweet!!!
+def getBgCounts( seqs, order=3, include_revComp=True ):
+    from sklearn.utils.extmath import cartesian
+    d = {}
+    for ord in range(order+1): ## get counts for 1,2,3,...order
+        all_combos = generateAllKmers( ord+1 )
+        for ss in all_combos:
+            if ss not in d.keys():
+                d[ss] = 0
+            for i in range( len(seqs) ):
+                if type(seqs) == np.ndarray:
+                    seq = Seq(seqs[i], IUPAC.ExtendedIUPACDNA())  ## seqs is a column.values from a DataFrame 
+                elif type(seqs) == dict: 
+                    seq = seqs.values()[i].seq ## otherwise assumed to be a dict of Bio.Seqs (e.g. genome_seqs)
+                d[ss] += seq.count(ss)
+                d[ss] += seq.reverse_complement().count(ss)
+    return d
+
+## Convert counts dictionary into frequencies; divide counts for each k-mer by the total for that given k.
+def getBgFreqs( bgCounts ):
+    k = np.array(bgCounts.keys())
+    nc = np.array([ len(i) for i in k ])
+    d = {}
+    for i in range( nc.max() ):
+        ks = k[ nc == i+1 ]
+        tot = sum( np.array([bgCounts[j] for j in ks]) )
+        for j in ks:
+            d[j] = float(bgCounts[j]) / float(tot)
+    return d
 
 # function read_iupac()
 #     fname = "./IUPAC-dna.txt"
@@ -180,98 +199,3 @@ def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True
 # end
 
 # const iupac_dict = read_iupac();
-
-# # function collect_add_dicts( a, b ) ## Add up all elements into output dict
-# #     for (k,v) in b a[k] = v + b[k]; end
-# #     a
-# # end
-
-# #@profile begin
-# ## Note this will not have an entry for subseqs that don't exist in the sequence
-# ## Only does it for a SINGLE "order" value and single strand - see the default getBgCounts() to see standard usage.
-# ## Use in conjunction with generate_all_kmers in order to get seqs w/ count=0
-# ## Taken from my seqTest.jl
-# function getBgCounts( seqs::Array{ASCIIString,1}, order::Array{Int64,1}=[0:5], verbose::Bool=false ) 
-#     ss::ASCIIString = "";
-#     d = Dict{ASCIIString,Int64}() ## Specifying the types speeds it up about 35%
-#     for seq=[seqs,[revComp(s) for s=seqs]] ##seqs
-#         seq = uppercase( seq )
-#         for j=order
-#             if verbose println(j); end
-#             for i=1:length(seq)-j ## for loop is about 5% faster than while loop
-# 	        ss = seq[i:(i+j)]
-# 	        d[ss] = get(d,ss,0) + 1
-#             end
-#         end
-#     end
-#     d
-# end
-
-# ##getBgCounts( seqs::Array{ASCIIString,1}, order::Int64 ) = 
-# ##             getBgCounts( [seqs,[revComp(s) for s=seqs]], [order] );
-# # getBgCounts( seqs::Array{ASCIIString,1}, order::Array{Int64,1} ) = 
-# #                getBgCounts( [seqs,[revComp(s) for s=seqs]], order ); ##, false );
-# # getBgCounts( seqs::Array{ASCIIString,1} ) = 
-# #                getBgCounts( [seqs,[revComp(s) for s=seqs]] );
-# # getBgCounts( seq::ASCIIString ) = getBgCounts( [seq] );
-
-# #bgCounts = getBgCounts( genome_seqs );
-# #end # profile
-
-# ## Convert counts dictionary into frequencies; divide counts for each k-mer by the total for that given k.
-# function getBgFreqs( bgCounts::Dict{ASCIIString,Int64} )
-#     k = collect(keys( bgCounts ))
-#     nc = [ length(k[i]) for i=1:length(k) ]
-#     d = Dict{ASCIIString,Float64}()
-#     for i=1:maximum(nc)
-#         ks = k[find(nc.==i)]
-#         tot = sum( [bgCounts[j] for j=ks] )
-#         for j=ks d[j] = bgCounts[j] / tot; end
-#     end
-#     d
-# end
-
-# ## Couldn't do this in R! Generate all sequences with given length.
-# ## Allow for up to n_ns N's as well.
-# function generate_all_kmers( len::Int64, n_ns::Int64=0, letters::Array{Char,1}=DNA_letters )
-#     function append_nucs( d::Array{ASCIIString}, letters::Array{Char,1} )
-#         out = Array(ASCIIString, length(d)*length(letters))
-#         ind::Int64 = 0
-#         for i=d for j=letters out[ind+=1] = strcat(i,j); end; end ## note can also use i*j
-#         out
-#     end
-
-#     if n_ns > 0 letters = [ letters, 'N' ]; end ## Add N to letters; just need 1 copy.
-#     d = Array(ASCIIString, length(letters))
-#     i=0; for j=letters d[i+=1] = "$j"; end
-#     for i = 1:len-1 d = append_nucs( d, letters ); end
-#     if n_ns > 0   ## Get rid of k-mers with > n_ns Ns.
-#         n_count = [ sum(chars(d[i]) .== 'N') for i=1:length(d) ]
-#         d = d[ find( n_count .<= n_ns ) ]
-#     end
-        
-#     d
-# end
-
-# #generate_all_kmers( len::Int64 ) = generate_all_kmers( len, 0, DNA_letters )
-# #generate_all_kmers( len::Int64, n_ns::Int64 ) = generate_all_kmers( len, n_ns, DNA_letters )
-
-# if false
-#     seq = "GATCATGCATGTATGCTACGTGCGCGGGTACGTATATGATGCTATTATCGTAGCTACGTAGCTAGCTAGCTACAGTCGATCGATTGAC"
-#     seq2bit = dna2seq(seq)
-#     d=Dict{BitArray{1},Int64}()
-#     d[[seq2bit[1:5].b1,seq2bit[1:5].b2]] = 1 ## can count up k-mers same as with ASCIIString
-
-#     ## file-based - can handle IUPAC codes
-#     seqnt = nt(seq)
-#     Astream=open("test.mmap", "a+")
-#     A=mmap_array(Nucleotide, size(seqnt), Atream)
-#     A[1:length(seqnt)] = seqnt
-#     close(Astream)
-
-#     ## try this! file-based, don't even have to read it in!
-#     len = filesize("Hpy/genome.85962.txt")
-#     seqStream = open("Hpy/genome.85962.txt", "r")
-#     seq = mmap_array(Nucleotide, (len,), seqStream)
-#     println(convert(ASCIIString,seq[500:505]))
-# end

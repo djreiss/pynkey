@@ -9,7 +9,7 @@ iter = 1
 # if myid() == 1 ## This stuff below should ONLY run on the head node
 
 #(ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes) = junkey_init(organism, k_clust);
-ratios, genome_seqs, anno, string_net, op_table, all_genes = \
+ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes = \
     init.pynkey_init(params.organism, params.k_clust, params.ratios_file)
 
 # reload( "./params.jl" ) ## include this again to set data-dependent defaults (e.g. k_clust=nrow(ratios)/10)

@@ -1,14 +1,16 @@
 ## TODO: Try using biopython for sequences
 ## TODO: Load and use other networks (with their respective scores)
+import os
+import gzip
+
 from numpy import nan as NA
 import numpy as np
 import pandas as pd
-import os
+
 from Bio import SeqIO
-import gzip
+import sequence as seq
 
 import params
-import sequence as seq
 
 print 'init'
 
@@ -58,35 +60,35 @@ def pynkey_init(organism, k_clust, ratios_file):
     gene_regex = get_regex( all_genes )
     print gene_regex
     
-    # ## Get all upstream seqs and their bgFreqs
-    # ## TODO: Need to add 0's for k-mers that are NOT in the sequences.
-    # ##   Use generate_all_kmers() for that.
-    # ## TODO: Need to include vague IUPAC symbols better
+    ## Get all upstream seqs and their bgFreqs
+    ## DONE: Need to add 0's for k-mers that are NOT in the sequences.
+    ## TODO: Need to include vague IUPAC symbols better
+    print 'Getting upstream sequences (search)'
     all_seqs = seq.get_sequences(all_genes, anno, genome_seqs, op_table, True, params.distance_search, False) 
-    print all_seqs.head()
+    print 'Filtering upstream sequences'
     all_seqs = seq.filter_sequences(all_seqs, params.distance_search)
-    print all_seqs.head()
 
+    print 'Getting upstream sequences (scan)'
+    all_seqs_scan = seq.get_sequences(all_genes, anno, genome_seqs, op_table, True, params.distance_scan, False)
+    print 'Filtering upstream sequences'
+    all_seqs_scan = seq.filter_sequences(all_seqs_scan, params.distance_scan)
 
-    # all_seqs_scan = get_sequences(anno["sysName"].data,anno,genome_seqs,true,op_table,distance_scan,false); 
-    # all_seqs_scan = all_seqs_scan[ find(all_seqs_scan[:,1].!=""), : ]
-    # all_seqs_scan = filter_sequences( all_seqs_scan, distance_scan )
-
-    # allSeqs_fname = "./$(organism)/allSeqs.fst"
-    # writeFasta( all_seqs_scan, allSeqs_fname ) ## NOTE all_seqs_scan are not used from here on
+    allSeqs_fname = './%s/allSeqs.fst' % params.organism
+    seq.writeFasta( all_seqs_scan, allSeqs_fname ) ## NOTE all_seqs_scan are not used from here on, just the fasta file
     
     # ##bgCounts = getBgCounts( [genome_seqs,revComp(genome_seqs)], [0:5], true );
     # ##bgFreqs = getBgFreqs( bgCounts ); ## TODO: bgFreqs are currently not used in MEME-ing OR MAST-ing.
 
-    # all_bgCounts = getBgCounts( all_seqs["seq"].data );
-    # all_bgFreqs = getBgFreqs( all_bgCounts );  ## TODO: bgFreqs are currently not used in MEME-ing OR MAST-ing.
+    print 'Getting trinucleotide freqs from upstream sequences'
+    all_bgCounts = seq.getBgCounts( all_seqs.seq.values )
+    all_bgFreqs = seq.getBgFreqs( all_bgCounts );  ## TODO: bgFreqs are currently not used in MEME-ing OR MAST-ing.
 
     # save_jld( "./$organism/data.jldz", (organism, k_clust, ratios, genome_seqs, anno, op_table, string_net, 
     #                                       allSeqs_fname, all_bgFreqs, all_genes) ) ##, all_rows
     
     # (ratios, genome_seqs, anno, op_table, string_net, ##all_seqs, all_seqs_scan, 
     #  allSeqs_fname, all_bgFreqs, all_genes) ##, all_rows) ##all_bgCounts, 
-    return (ratios, genome_seqs, anno, string_net, op_table, all_genes)
+    return (ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes)
 
 def load_ratios(rats_file):
     ## TODO: make it work for any organism; download the sequence/anno data using HTTP package; 
@@ -192,6 +194,7 @@ def load_pynkey_code():
     print exec_path
     files = np.array( os.listdir(exec_path) )
     files = files[ np.array( [f.endswith('.py') for f in files] ) ]
+    files = files[ np.array( [not f.startswith('.') for f in files] ) ]
     print files
     code = {}
     for f in files:
@@ -200,6 +203,33 @@ def load_pynkey_code():
         fo.close()
         code[f] = lines
     return code
+
+def get_regex( strings, min_ignore=2 ):
+    nchar = np.array( [ len(i) for i in strings ] )
+    out = ''
+    for i in np.arange( nchar.max() ):
+        d = {}
+        for str in strings:
+            if i >= len(str):
+                continue
+            c = str[i]
+ 	    if c in d:
+                d[c] = d[c] + 1
+            else:
+                d[c] = 1
+        if len(d) == 0:
+            break
+        tmp = ''
+        for c in d:
+            if d[c] > min_ignore: ## ignore values with <=2 occurences
+                tmp = tmp + c ##''.join([tmp, c]) ##'{0}{1}'.format(tmp, c)
+        if len(tmp) > 1:          ## add brackets around it if >1 different characters
+            tmp = '[' + tmp + ']' ##''.join(['[', tmp, ']']) ##'[{0}]'.format(tmp)
+        if sum(d.values()) < len(strings) * 0.95:  ## add '?' after it if infrequent
+            tmp = tmp + '?' ##''.join([tmp, '?']) ##'{0}?'.format(tmp)
+        if tmp != '':             ## append it
+            out = out + tmp ##''.join([out, tmp]) ##'{0}{1}'.format(out, tmp)
+    return out
 
 # function init_biclusters( x, k_clust, method="kmeans" ) 
 #     ## Init via kmeans -- TODO: other methods (including random)
@@ -238,31 +268,4 @@ def load_pynkey_code():
 #     end
 #     clusters
 # end
-
-def get_regex( strings, min_ignore=2 ):
-    nchar = np.array( [ len(i) for i in strings ] )
-    out = ''
-    for i in np.arange( nchar.max() ):
-        d = {}
-        for str in strings:
-            if i >= len(str):
-                continue
-            c = str[i]
- 	    if c in d:
-                d[c] = d[c] + 1
-            else:
-                d[c] = 1
-        if len(d) == 0:
-            break
-        tmp = ''
-        for c in d:
-            if d[c] > min_ignore: ## ignore values with <=2 occurences
-                tmp = tmp + c ##''.join([tmp, c]) ##'{0}{1}'.format(tmp, c)
-        if len(tmp) > 1:          ## add brackets around it if >1 different characters
-            tmp = '[' + tmp + ']' ##''.join(['[', tmp, ']']) ##'[{0}]'.format(tmp)
-        if sum(d.values()) < len(strings) * 0.95:  ## add '?' after it if infrequent
-            tmp = tmp + '?' ##''.join([tmp, '?']) ##'{0}?'.format(tmp)
-        if tmp != '':             ## append it
-            out = out + tmp ##''.join([out, tmp]) ##'{0}{1}'.format(out, tmp)
-    return out
 
