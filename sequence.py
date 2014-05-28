@@ -3,6 +3,7 @@
 ## TODO: Need to add remove-ATG step, and also running dust on sequences.
 
 import pandas as pd
+import numpy as np
 import params
 
 def get_genome_seq( genome_seqs, scaffoldId ):
@@ -10,7 +11,7 @@ def get_genome_seq( genome_seqs, scaffoldId ):
     genome_seq_names = np.array( [ seq.name for seq in genome_seqs.values() ] )
     ind = np.where( genome_seq_names == sid )[ 0 ]
     if len(ind) > 0:
-        return genome_seqs.values()[ind[0]].seq.tostring()
+        return genome_seqs.values()[ind[0]].seq
     else:
         return ''
 
@@ -18,12 +19,12 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
                    genome_seqs=None, ##=globals()['genome_seqs'], 
                    op_table=None, ##=globals()['op_table'], 
                    op_shift=True, distance=params.distance_search, debug=False ):
-    if anno is None:
-        anno = globals()['anno']
-    if genome_seqs is None:
-        genome_seqs = globals()['genome_seqs']
-    if op_table is None:
-        op_table = globals()['op_table']
+    # if anno is None:
+    #     anno = globals()['anno']
+    # if genome_seqs is None:
+    #     genome_seqs = globals()['genome_seqs']
+    # if op_table is None:
+    #     op_table = globals()['op_table']
 
     seqs = {}
     ind = 0
@@ -56,7 +57,7 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
             seq = seq.reverse_complement()
         seqs[ gene ] = pd.DataFrame( {'upstream_gene':[upstream_gene], 'seq':[seq.tostring()]}, index=[gene] )
     ##out = rbind(seqs)
-    return out
+    return seqs
 
 # function filter_sequences( seqs::DataFrame, distance=distance_search, remove_repeats=true, remove_atgs=true )
 #     seqs = seqs[ seqs["seq"] .!= "", : ] ## remove all empty sequences; they cause heartburn.

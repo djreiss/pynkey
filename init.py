@@ -7,6 +7,7 @@ import os
 from Bio import SeqIO
 import gzip
 
+import params
 import sequence as seq
 
 print 'init'
@@ -58,7 +59,7 @@ def pynkey_init(organism, k_clust, ratios_file):
     # ## TODO: Need to add 0's for k-mers that are NOT in the sequences.
     # ##   Use generate_all_kmers() for that.
     # ## TODO: Need to include vague IUPAC symbols better
-    all_seqs = seq.get_sequences(anno["sysName"].data,anno,genome_seqs,true,op_table,distance_search,false); 
+    all_seqs = seq.get_sequences(anno.index.values, anno, genome_seqs, op_table, True, params.distance_search, False ) 
     # all_seqs = all_seqs[ find(all_seqs[:,1].!=""), : ] 
     # all_seqs = filter_sequences( all_seqs, distance_search )
 
