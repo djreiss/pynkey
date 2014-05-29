@@ -30,10 +30,10 @@ class bicluster:
             self.cols = np.sort( ratios.columns.values[ rand.choice(ratios.shape[1], ratios.shape[1]/2, replace=False) ] )
 
         max_float = sys.float_info.max
-        self.var = None ##max_float
-        self.resid = None ##max_float
-        self.dens_string = None ##max_float
-        self.meanp_meme = None ##max_float
+        self.var = max_float
+        self.resid = max_float
+        self.dens_string = max_float
+        self.meanp_meme = max_float
         self.scores_r = np.array([])
         self.scores_c = np.array([])
         self.scores_n = np.array([])

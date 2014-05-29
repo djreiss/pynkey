@@ -1,7 +1,6 @@
 ## MAIN PROGRAM
 import datetime
 
-import includes
 import params
 import init
 
