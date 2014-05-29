@@ -75,6 +75,9 @@ def pynkey_init(organism, k_clust, ratios_file):
 
     allSeqs_fname = './%s/allSeqs.fst' % params.organism
     seq.writeFasta( all_seqs_scan, allSeqs_fname ) ## NOTE all_seqs_scan are not used from here on, just the fasta file
+    ## NOTE: can use the fasta file as an offline database:
+    ## test=SeqIO.index("Hpy/allSeqs.fst", "fasta") ## stores a dict with links to the locations in the file
+    ## test['HP0001'] ## works!!
     
     # ##bgCounts = getBgCounts( [genome_seqs,revComp(genome_seqs)], [0:5], true );
     # ##bgFreqs = getBgFreqs( bgCounts ); ## TODO: bgFreqs are currently not used in MEME-ing OR MAST-ing.
@@ -126,16 +129,20 @@ def load_ratios(rats_file):
 
 def load_genome(organism):
     ## see http://biopython.org/wiki/SeqIO#Sequence_Input
-    ## TODO: allow for multiple genome seqs (e.g. Halo, Sce)
+    ## DONE: allow for multiple genome seqs (e.g. Halo, Sce)
     org_files = np.array( os.listdir('./' + organism + '/') )
     genome_file = './' + organism + '/' + org_files[ np.array( [f.startswith('genome.') for f in org_files] ) ][ 0 ]
     print genome_file
 
     handle = gzip.open(genome_file)
-    genome_seqs = SeqIO.to_dict(SeqIO.parse(handle, "fasta")) ## allows >1 sequence too but the files only have one seq so
+    genome_seqs = SeqIO.to_dict(SeqIO.parse(handle, "fasta")) ## allows >1 sequence
     handle.close()
-    ##genome_seqs = SeqIO.read(gzip.open(genome_file), "fasta") ## this is a python dict
+    ##genome_seqs = SeqIO.read(gzip.open(genome_file), "fasta") ## this is a SeqRecord (only one sequence)
     ## get the biosequence via: genome_seqs.values()[0].seq
+
+    ## NOTE can avoid reading in sequence into memory! 
+    ## See http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec%3ASeqIO-index
+    ## genome_seqs = SeqIO.index(genome_file, 'fasta') ## probably need to ungz the file first.
 
     print genome_seqs
     print len(genome_seqs)
