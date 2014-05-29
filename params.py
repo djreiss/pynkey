@@ -3,11 +3,18 @@ import numpy as np
 
 print 'params'
 
+#def undefined(var):
+#    var not in vars() and var not in globals()
+
+#if undefined('organism'):
 organism = 'Hpy'
 #organism = 'Eco'
 #organism = 'Sce'
 #organism = 'Mpn'
 
+print organism
+
+#if undefined('k_clust'):
 if organism == 'Hpy':
     k_clust = 75
 elif organism == 'Eco':
@@ -17,6 +24,7 @@ elif organism == 'Sce':
 elif organism == 'Mpn':
     k_clust = 75
 
+#if undefined('ratios'):
 ratios_file = './' + organism + '/ratios.tsv.gz'
 
 print ratios_file

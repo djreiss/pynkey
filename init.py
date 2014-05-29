@@ -232,8 +232,7 @@ def init_biclusters( ratios, k_clust, method='kmeans' ):
     print method
     if method == 'kmeans' or method == 'kmeans+random':
         x = ratios.copy()
-        x.fillna(method=None, value=0.0, axis=1, inplace=True) ## should randomize a bit
-#         xx[is_nan] = rand(sum(is_nan))*0.1 - 0.05; 
+        ##x.fillna(method=None, value=0.0, axis=1, inplace=True) ## seems kemans2 can handle na's
 
         _, km1 = clust.kmeans2( x.values, k_clust, iter=20, minit='random' )
 

@@ -5,6 +5,8 @@ import numpy as np
 from numpy import random as rand
 import pandas as pd
 
+from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
+
 class bicluster:
     k = None    ## cluster index
     rows = None ## vector of gene names
@@ -29,7 +31,7 @@ class bicluster:
         elif ratios is not None:
             self.cols = np.sort( ratios.columns.values[ rand.choice(ratios.shape[1], ratios.shape[1]/2, replace=False) ] )
 
-        max_float = sys.float_info.max
+        max_float = float('inf') ##sys.float_info.max
         self.var = max_float
         self.resid = max_float
         self.dens_string = max_float
@@ -43,10 +45,10 @@ class bicluster:
         self.changed = np.ones(2, np.bool)
 
     def __repr__(self):
-        return 'Bicluster: %d' % self.k + '\n' + \
-            'resid: %f' % self.resid + '\n' + \
-            'meme-p: %f' % self.meanp_meme + '\n' + \
-            'string: %f' % self.dens_string + '\n' + \
-            'rows: %s' % str(self.rows) + '\n' + \
-            'cols: %s' % str(self.cols)
+        return Fore.GREEN + 'Bicluster: ' + Fore.RESET + '%d' % self.k + '\n' + \
+            '   resid: %f' % self.resid + '\n' + \
+            '   meme-p: %f' % self.meanp_meme + '\n' + \
+            '   string: %f' % self.dens_string + '\n' + \
+            '   rows: %s' % str(self.rows) + '\n' + \
+            '   cols: %s' % str(self.cols)
     
