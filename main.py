@@ -1,4 +1,5 @@
 ## MAIN PROGRAM
+import datetime
 
 import includes
 import params
@@ -6,23 +7,15 @@ import init
 
 iter = 1
 
-# if myid() == 1 ## This stuff below should ONLY run on the head node
-
-#(ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes) = junkey_init(organism, k_clust);
 ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes = \
     init.pynkey_init(params.organism, params.k_clust, params.ratios_file)
-
-# reload( "./params.jl" ) ## include this again to set data-dependent defaults (e.g. k_clust=nrow(ratios)/10)
-
-# if nprocs() > 1 pre_load_child_nodes(); end ## send ratios, string_net, k_clust, etc. over to children
-# gc()
 
 # Save all pynkey code for safe keeping
 pynkey_code = init.load_pynkey_code()
 
-# ##stop()
+startTime = datetime.datetime.now()
+print str(startTime)
 
-# startTime = time()
 # clusters = init_biclusters( ratios, k_clust, "random" );
 # if nprocs() > 1 clusters = fill_all_cluster_scores_parallel( clusters, true, true );
 # else clusters = fill_all_cluster_scores( clusters, true, true ); end
@@ -31,9 +24,10 @@ pynkey_code = init.load_pynkey_code()
 # stats_df = DataFrame()
 # run_junkey() ## Note this function can be run like this to restart from current iter
 
-# println( "DONE!" )
-# endTime = time()
-# println( @sprintf( "%.3f", (endTime - startTime)/60 ), " minutes since initialization" )
+print 'DONE!'
+endTime = datetime.datetime.now()
+print str(endTime)
+print str(endTime - startTime) + ' seconds since initialization'
 
 # kInd = 1;
 # if organism == "Hpy" || organism == "Eco" kInd = clusters_w_func("flagell", clusters)[1]; end

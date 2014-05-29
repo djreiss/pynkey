@@ -15,26 +15,7 @@ import params
 print 'init'
 
 def pynkey_init(organism, k_clust, ratios_file):
-    #global ratios_file, ratios, distance_scan, distance_search
     print organism
-
-    ## TODO: shouldn't store ratios, k_clust in this file; this is just organism/genome data
-    # if filesize("./$organism/data.jldz") > 0 ## 0 if not exist
-    #     warn( "Loading organism data from ./$organism/data.jldz" )
-    #     (organism, k_clust, ratios, genome_seqs, anno, op_table, string_net, 
-    #      allSeqs_fname, all_bgFreqs, all_genes) = load_jld("./$organism/data.jldz"); ##, all_rows
-
-    #     ## Make sure we have written out the sequences file for MAST-ing
-    #     if filesize(allSeqs_fname) <= 0 
-    #         all_seqs_scan = get_sequences(anno["sysName"].data,anno,genome_seqs,true,op_table,distance_scan,false); 
-    #         all_seqs_scan = all_seqs_scan[ find(all_seqs_scan[:,1].!=""), : ]
-    #         all_seqs_scan = filter_sequences( all_seqs_scan, distance_scan )
-
-    #         writeFasta( all_seqs_scan, allSeqs_fname )
-    #     end
-    #     return( (ratios, genome_seqs, anno, op_table, string_net, ##all_seqs, all_seqs_scan, 
-    #              allSeqs_fname, all_bgFreqs, all_genes) ) ##, all_rows) ##all_bgCounts, 
-    # end 
 
     ratios = load_ratios(ratios_file)
 
@@ -151,7 +132,8 @@ def load_genome(organism):
 def load_annos(organism):
 ## Load the gene annotations
     org_files = np.array( os.listdir('./' + organism + '/') )
-    genomeInfo_file = './' + organism + '/' + org_files[ np.array( [f.startswith('genomeInfo.') for f in org_files] ) ][ 0 ]
+    genomeInfo_file = './' + organism + '/' + \
+        org_files[ np.array( [f.startswith('genomeInfo.') for f in org_files] ) ][ 0 ]
 
     print genomeInfo_file
     ## note x.ix[:,:5].head() prints first 5 cols
