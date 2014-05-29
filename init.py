@@ -11,6 +11,7 @@ from Bio import SeqIO
 import sequence as seq
 
 import params
+from Bicluster import bicluster
 
 print 'init'
 
@@ -220,41 +221,35 @@ def get_regex( strings, min_ignore=2 ):
             out = out + tmp ##''.join([out, tmp]) ##'{0}{1}'.format(out, tmp)
     return out
 
-# function init_biclusters( x, k_clust, method="kmeans" ) 
-#     ## Init via kmeans -- TODO: other methods (including random)
-#     ## DONE: use k_means from Clustering package
-#     clusters = Dict{Int64,bicluster}()
+from numpy import random as rand
 
-#     if method == "kmeans" || method == "kmeans+random"
-#         xx = x.x;
-#         is_nan = isnan(xx)
-#         xx[is_nan] = rand(sum(is_nan))*0.1 - 0.05; ## randomize a bit; note this works on the original (global) x!
+def init_biclusters( ratios, k_clust, method='kmeans' ):
+    import scipy.cluster.vq as clust
 
-#         ##km1=kmeansclust( xx, 50, 20 ); ## original
-#         ##km1=kmeans( xx', k_clust, 20 ); ## my "optimized" version that pre-removes NAs
-#         ##assignments = km1[3]
-#         km1=Clustering.kmeans(convert(Matrix{Float64},xx'), k_clust)
-#         assignments = km1.assignments
-        
-#         #     if nprocs() > 1 km2=kmeans2( x.x', k_clust, 20 ); ## parallelized version -- now seems to be broken
-#         #     else km1=kmeans( x.x', k_clust, 20 ); ## my "optimized" version that pre-removes NAs
-#         #     end
-        
-#         ## seed each bicluster with rows=output from kmeans and cols=random (1/2 of all cols)
-#         for k=1:k_clust
-#             rows = findin(assignments, k)
-#             if method == "kmeans" 
-#                 clusters[k] = bicluster( k, rows, x )
-#             elseif method == "kmeans+random" ##         ## add some random rows to each bicluster
-#                 clusters[k] = bicluster( k, unique([ rows, randperm(size(xx,1))[1:length(rows)] ]), x )
-#             end
-#         end
-#         xx[is_nan] = NA ## reset the values to NA
-#     elseif method == "random"
-#         for k=1:k_clust
-#             clusters[k] = bicluster( k, unique( randperm(size(x.x,1))[1:20] ), x )
-#         end
-#     end
-#     clusters
-# end
+## Init via kmeans -- TODO: other methods (including random)
+    clusters = {}
+
+    print method
+    if method == 'kmeans' or method == 'kmeans+random':
+        x = ratios.copy()
+        x.fillna(method=None, value=0.0, axis=1, inplace=True) ## should randomize a bit
+#         xx[is_nan] = rand(sum(is_nan))*0.1 - 0.05; 
+
+        _, km1 = clust.kmeans2( x.values, k_clust, iter=20, minit='random' )
+
+         ## seed each bicluster with rows=output from kmeans and cols=random (1/2 of all cols)
+        for k in range(k_clust):
+            rows = ratios.index.values[ np.where( km1 == k ) ]
+            if method == 'kmeans': 
+                if len(rows) == 0:
+                    rows = ratios.index.values[ rand.choice(ratios.shape[0], 10, replace=False) ]
+                clusters[k] = bicluster( k, rows, x )
+            elif method == 'kmeans+random':          ## add some random rows to each bicluster
+                new_rows = ratios.index.values[ rand.choice(ratios.shape[0], max(len(rows),10), replace=False) ]
+                clusters[k] = bicluster( k, np.unique( np.concatenate( (rows, new_rows), 0 ) ), x )
+    elif method == 'random':
+        for k in range(k_clust):
+            rows = ratios.index.values[ rand.choice(ratios.shape[0], 20, replace=False) ]
+            clusters[k] = bicluster( k, np.unique( rows ), x )
+    return clusters
 

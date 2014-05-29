@@ -16,7 +16,7 @@ pynkey_code = init.load_pynkey_code()
 startTime = datetime.datetime.now()
 print str(startTime)
 
-# clusters = init_biclusters( ratios, k_clust, "random" );
+clusters = init.init_biclusters( ratios, params.k_clust, 'kmeans+random' );
 # if nprocs() > 1 clusters = fill_all_cluster_scores_parallel( clusters, true, true );
 # else clusters = fill_all_cluster_scores( clusters, true, true ); end
 # println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )

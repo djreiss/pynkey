@@ -1,26 +1,52 @@
+import sys
 
-type bicluster
-    k::Int64
-    rows::Vector{Int64}
-    cols::Vector{Int64}
-    var::Float32
-    resid::Float32
-    dens_string::Float32
-    meanp_meme::Float32
-    scores_r::Vector{Float32}
-    scores_c::Vector{Float32}
-    scores_n::Vector{Float32}
-    scores_m::Vector{Float32}
-    meme_out::Vector{ASCIIString}
-    mast_out::DataFrame ##Array{Any,2}
-    changed::BitArray{1} ## rows, cols
-end
+from numpy import nan as NA
+import numpy as np
+from numpy import random as rand
+import pandas as pd
 
-bicluster( k, rows::Vector, cols::Vector ) = bicluster( k, unique(rows), unique(cols),
-                                 ##unique( int64( [rand(1:size(x,2)) for i=1:div(size(x,2),2)] ) ),
-                                 typemax(Float32), typemax(Float32), typemax(Float32), typemax(Float32), 
-                                 Array(Float32,0), Array(Float32,0), Array(Float32,0), 
-                                 Array(Float32,0), Array(ASCIIString,0), DataFrame(), trues(2) )
+class bicluster:
+    k = None    ## cluster index
+    rows = None ## vector of gene names
+    cols = None ## vector of cond names
+    var = None  ## float - variance??
+    resid = None ## float - residual
+    dens_string = None ## float - string network density
+    meanp_meme = None ## float - mean meme p-value
+    scores_r = None ## vector of row scores
+    scores_c = None ## vector of col scores
+    scores_n = None ## vector of network scores
+    scores_m = None ## vector of motif scores
+    meme_out = None ## string vector - meme output
+    mast_out = None ## DataFrame - parsed meme output
+    changed = False 
 
-bicluster( k, rows::Vector, x::NamedMatrix ) = bicluster( k, rows, 
-                                 Distributions.sample([1:size(x.x,2)],div(size(x.x,2),2),replace=false,ordered=true) )
+    def __init__( self, k, rows, cols=None, ratios=None ):
+        self.k = k
+        self.rows = np.unique(rows)
+        if cols is not None:
+            self.cols = np.unique(cols)
+        elif ratios is not None:
+            self.cols = np.sort( ratios.columns.values[ rand.choice(ratios.shape[1], ratios.shape[1]/2, replace=False) ] )
+
+        max_float = sys.float_info.max
+        self.var = None ##max_float
+        self.resid = None ##max_float
+        self.dens_string = None ##max_float
+        self.meanp_meme = None ##max_float
+        self.scores_r = np.array([])
+        self.scores_c = np.array([])
+        self.scores_n = np.array([])
+        self.scores_m = np.array([])
+        self.meme_out = ['']
+        self.mast_out = pd.DataFrame()
+        self.changed = np.ones(2, np.bool)
+
+    def __repr__(self):
+        return 'Bicluster: %d' % self.k + '\n' + \
+            'resid: %f' % self.resid + '\n' + \
+            'meme-p: %f' % self.meanp_meme + '\n' + \
+            'string: %f' % self.dens_string + '\n' + \
+            'rows: %s' % str(self.rows) + '\n' + \
+            'cols: %s' % str(self.cols)
+    
