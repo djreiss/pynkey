@@ -157,7 +157,7 @@ from sklearn.utils.extmath import cartesian
 
 ## this is non-overlapping count! Use regex instead... see:
 ## https://stackoverflow.com/questions/2970520/string-count-with-overlapping-occurances
-def getBgCounts_OLD( seqs, order=3, include_revComp=True ):
+def getBgCounts( seqs, order=3, include_revComp=True ):
     d = {}
     for ord in range(order+1): ## get counts for 1,2,3,...order
         all_combos = generateAllKmers( ord+1 )
@@ -177,7 +177,7 @@ def getBgCounts_OLD( seqs, order=3, include_revComp=True ):
 
 import re
 
-def getBgCounts( seqs, order=3, include_revComp=True ):
+def getBgCounts_SLOW( seqs, order=3, include_revComp=True ):
     d = {}
     for ord in range(order+1): ## get counts for 1,2,3,...order
         all_combos = generateAllKmers( ord+1 )

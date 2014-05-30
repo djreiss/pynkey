@@ -3,8 +3,9 @@
 import os
 import gzip
 
-from numpy import nan as NA
 import numpy as np
+from numpy import nan as NA
+from numpy import random as rand
 import pandas as pd
 
 from Bio import SeqIO
@@ -99,7 +100,7 @@ def load_ratios(rats_file):
     ## Although ratios.values does the same thing ;)
     ## Note e.g. ratios.mean(1) is about 5.5x slower than ratios.values.mean(1)
 
-    good_rows = (x==NA).apply(np.sum, axis=1) < x.shape[1]/2
+    good_rows = np.isnan(x).apply(np.sum, axis=1) < x.shape[1]/3
     x = x[good_rows]
     print x.shape
 
@@ -221,8 +222,6 @@ def get_regex( strings, min_ignore=2 ):
             out = out + tmp ##''.join([out, tmp]) ##'{0}{1}'.format(out, tmp)
     return out
 
-from numpy import random as rand
-
 def init_biclusters( ratios, k_clust, method='kmeans' ):
     import scipy.cluster.vq as clust
 
@@ -231,8 +230,11 @@ def init_biclusters( ratios, k_clust, method='kmeans' ):
 
     print method
     if method == 'kmeans' or method == 'kmeans+random':
-        x = ratios.copy()
-        ##x.fillna(method=None, value=0.0, axis=1, inplace=True) ## seems kemans2 can handle na's
+        nans = np.sum(np.isnan(ratios.values))
+        x = ratios
+        if nans > 0:
+            x = ratios.copy()
+            x.fillna(method=None, value=rand.normal(scale=0.1, size=nans), axis=1, inplace=True) ## can kemans2 handle na's?
 
         _, km1 = clust.kmeans2( x.values, k_clust, iter=20, minit='random' )
 
