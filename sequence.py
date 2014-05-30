@@ -13,6 +13,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 from Bio import SeqIO
+from Bio.Seq import reverse_complement ## rev_comp for a string
 
 import params
 
@@ -140,8 +141,8 @@ def writeFasta( seqs, fname ): ## Assumes seqs in DataFrame format of get_sequen
     SeqIO.write(tmp, handle, "fasta")
     handle.close()
 
-def revComp( seq ):
-    Seq.reverse_complement(seq)
+##def revComp( seq ):
+##    reverse_complement(seq)
 
 DNA_letters = np.array( [ 'G', 'A', 'T', 'C' ] )
 
@@ -152,21 +153,44 @@ def generateAllKmers( length ):
     return all_combos.values
 
 # This is sweet!!!
-def getBgCounts( seqs, order=3, include_revComp=True ):
-    from sklearn.utils.extmath import cartesian
+from sklearn.utils.extmath import cartesian
+
+## this is non-overlapping count! Use regex instead... see:
+## https://stackoverflow.com/questions/2970520/string-count-with-overlapping-occurances
+def getBgCounts_OLD( seqs, order=3, include_revComp=True ):
     d = {}
     for ord in range(order+1): ## get counts for 1,2,3,...order
         all_combos = generateAllKmers( ord+1 )
-        for ss in all_combos:
-            if ss not in d.keys():
-                d[ss] = 0
-            for i in range( len(seqs) ):
-                if type(seqs) == np.ndarray:
-                    seq = Seq(seqs[i], IUPAC.ExtendedIUPACDNA())  ## seqs is a column.values from a DataFrame 
-                elif type(seqs) == dict: 
-                    seq = seqs.values()[i].seq ## otherwise assumed to be a dict of Bio.Seqs (e.g. genome_seqs)
+        for i in range( len(seqs) ):
+            seq = None
+            if type(seqs) == np.ndarray:
+                seq = Seq(seqs[i], IUPAC.ExtendedIUPACDNA())  ## seqs is a column.values from a DataFrame 
+            elif type(seqs) == dict: 
+                seq = seqs.values()[i].seq ## otherwise assumed to be a dict of Bio.Seqs (e.g. genome_seqs)
+            seq_rev = seq.reverse_complement()
+            for ss in all_combos:
+                if ss not in d.keys():
+                    d[ss] = 0
                 d[ss] += seq.count(ss)
-                d[ss] += seq.reverse_complement().count(ss)
+                d[ss] += seq_rev.count(ss)
+    return d
+
+import re
+
+def getBgCounts( seqs, order=3, include_revComp=True ):
+    d = {}
+    for ord in range(order+1): ## get counts for 1,2,3,...order
+        all_combos = generateAllKmers( ord+1 )
+        for i in range( len(seqs) ):
+            seq = None
+            if type(seqs) == dict: 
+                seq = seqs.values()[i].seq.tostring()
+            seq_rev = reverse_complement(seq)
+            for ss in all_combos:
+                if ss not in d.keys():
+                    d[ss] = 0
+                d[ss] += len(re.findall('(?='+ss+')', seq))
+                d[ss] += len(re.findall('(?='+ss+')', seq_rev)) 
     return d
 
 ## Convert counts dictionary into frequencies; divide counts for each k-mer by the total for that given k.
