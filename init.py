@@ -234,7 +234,9 @@ def init_biclusters( ratios, k_clust, method='kmeans' ):
         x = ratios
         if nans > 0:
             x = ratios.copy()
-            x.fillna(method=None, value=rand.normal(scale=0.1, size=nans), axis=1, inplace=True) ## can kemans2 handle na's?
+            ## can kemans2 handle na's?
+            ##x.fillna(method=None, value=rand.normal(scale=0.1, size=nans), axis=1, inplace=True)
+            x.values[ x.isnull().values ] = rand.normal(scale=0.1, size=nans)
 
         _, km1 = clust.kmeans2( x.values, k_clust, iter=20, minit='random' )
 
