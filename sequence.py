@@ -146,20 +146,18 @@ def writeFasta( seqs, fname ): ## Assumes seqs in DataFrame format of get_sequen
 
 DNA_letters = np.array( [ 'G', 'A', 'T', 'C' ] )
 
+# This is sweet!!!
 def generateAllKmers( length ):
     from sklearn.utils.extmath import cartesian
     all_combos = pd.DataFrame( cartesian( [DNA_letters] * length ) )
     all_combos = all_combos.apply( lambda x: ''.join( x.tolist() ), axis=1 ) ## sweet!
     return all_combos.values
 
-# This is sweet!!!
-from sklearn.utils.extmath import cartesian
-
-## this is non-overlapping count! Use regex instead... see:
-## https://stackoverflow.com/questions/2970520/string-count-with-overlapping-occurances
-def getBgCounts( seqs, order=3, include_revComp=True ):
+## this is non-overlapping count! 
+def getBgCounts_FAST_INACCURATE( seqs, order=3, include_revComp=True ):
     d = {}
     for ord in range(order+1): ## get counts for 1,2,3,...order
+        print ord
         all_combos = generateAllKmers( ord+1 )
         for i in range( len(seqs) ):
             seq = None
@@ -175,23 +173,52 @@ def getBgCounts( seqs, order=3, include_revComp=True ):
                 d[ss] += seq_rev.count(ss)
     return d
 
-import re
-
-def getBgCounts_SLOW( seqs, order=3, include_revComp=True ):
+## Use regex instead to get overlapping counts... see:
+## https://stackoverflow.com/questions/2970520/string-count-with-overlapping-occurances
+def getBgCounts_SLOW_ACCURATE( seqs, order=3, include_revComp=True ):
+    import re
     d = {}
     for ord in range(order+1): ## get counts for 1,2,3,...order
+        print ord
         all_combos = generateAllKmers( ord+1 )
         for i in range( len(seqs) ):
             seq = None
-            if type(seqs) == dict: 
-                seq = seqs.values()[i].seq.tostring()
-            seq_rev = reverse_complement(seq)
+            if type(seqs) == np.ndarray:
+                seq = Seq(seqs[i], IUPAC.ExtendedIUPACDNA())  ## seqs is a column.values from a DataFrame 
+            elif type(seqs) == dict: 
+                seq = seqs.values()[i].seq ## otherwise assumed to be a dict of Bio.Seqs (e.g. genome_seqs)
+            seq_rev = Seq(seq, IUPAC.ExtendedIUPACDNA()).reverse_complement()
             for ss in all_combos:
                 if ss not in d.keys():
                     d[ss] = 0
                 d[ss] += len(re.findall('(?='+ss+')', seq))
                 d[ss] += len(re.findall('(?='+ss+')', seq_rev)) 
     return d
+
+## This also gets overlapping counts by iteration and counting, is 5.5x faster than the regex method
+## Note it can use a lot of memory - 2x the size of the biggest input seq (which will be a lot if it's a genome!)
+def getBgCounts_FAST_ACCURATE_BIGMEMORY( seqs, order=3, include_revComp=True ):
+    from collections import Counter
+    d = {}
+    for ord in range(order+1): ## get counts for 1,2,3,...order
+        print ord
+        all_combos = generateAllKmers( ord+1 )
+        for ss in all_combos:
+            d[ss] = 0
+        for i in range( len(seqs) ):
+            seq = None
+            if type(seqs) == np.ndarray:
+                seq = seqs[i]
+            elif type(seqs) == dict: 
+                seq = seqs.values()[i].seq.tostring()
+            seq_rev = reverse_complement(seq)
+            c1 = Counter([seq[i:(i+ord+1)] for i in range(len(seq)-ord)])
+            c2 = Counter([seq_rev[i:(i+ord+1)] for i in range(len(seq_rev)-ord)])
+            for ss in all_combos:
+                d[ss] += c1[ss] + c2[ss]
+    return d
+
+getBgCounts = getBgCounts_FAST_ACCURATE_BIGMEMORY
 
 ## Convert counts dictionary into frequencies; divide counts for each k-mer by the total for that given k.
 def getBgFreqs( bgCounts ):
