@@ -17,7 +17,8 @@ print str(startTime)
 
 clusters = init.init_biclusters( ratios, params.k_clust, 'kmeans+random' );
 # if nprocs() > 1 clusters = fill_all_cluster_scores_parallel( clusters, true, true );
-# else clusters = fill_all_cluster_scores( clusters, true, true ); end
+# else 
+##clusters = fill_all_cluster_scores( clusters, true, true ) ##; end
 # println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
 
 # stats_df = DataFrame()

@@ -100,7 +100,7 @@ def load_ratios(rats_file):
     ## Although ratios.values does the same thing ;)
     ## Note e.g. ratios.mean(1) is about 5.5x slower than ratios.values.mean(1)
 
-    good_rows = np.isnan(x).apply(np.sum, axis=1) < x.shape[1]/3
+    good_rows = x.isnull().apply(np.sum, axis=1) < x.shape[1]/3
     x = x[good_rows]
     print x.shape
 
