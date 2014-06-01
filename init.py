@@ -32,7 +32,7 @@ def pynkey_init(organism, k_clust, ratios_file):
     ## build up a list of all genes in the expr. data + in the annotations + in the string network
     all_genes = ratios.index.values ## same as rownames
     all_genes = np.unique( np.append( all_genes, anno.index.values ) )
-    all_genes = np.unique( np.append( all_genes, [string_net.protein1.values, string_net.protein2.values] ) )
+    all_genes = np.unique( np.append( all_genes, [string_net.index.values, string_net.protein2.values] ) )
     all_genes = np.unique( np.append( all_genes, [op_table.SysName1.values, op_table.SysName2.values] ) )
     all_genes = np.sort(all_genes)
     all_genes = all_genes[ all_genes != NA ] ## for some reason some are floats and they are printing as nan's but this line
@@ -118,7 +118,7 @@ def load_genome(organism):
     print genome_file
 
     handle = gzip.open(genome_file)
-    genome_seqs = SeqIO.to_dict(SeqIO.parse(handle, "fasta")) ## allows >1 sequence
+    genome_seqs = SeqIO.to_dict(SeqIO.parse(handle, 'fasta')) ## allows >1 sequence
     handle.close()
     ##genome_seqs = SeqIO.read(gzip.open(genome_file), "fasta") ## this is a SeqRecord (only one sequence)
     ## get the biosequence via: genome_seqs.values()[0].seq
@@ -129,6 +129,9 @@ def load_genome(organism):
 
     print genome_seqs
     print len(genome_seqs)
+
+    ## TODO: can use carray to compress the genome seq in memory:
+    ##b = carray.carray(np.array(list(genome_seqs.values()[0].seq.tostring())))
     return genome_seqs
 
 def load_annos(organism):
@@ -148,7 +151,7 @@ def load_string_net(organism):
     string_file = './' + organism + '/' + org_files[ np.array( [f.startswith('STRING') for f in org_files] ) ][ 0 ]
 
     print string_file
-    string_net = pd.read_table(string_file, compression='gzip', names=['protein1','protein2','weight']) 
+    string_net = pd.read_table(string_file, compression='gzip', names=['protein1','protein2','weight'], index_col='protein1') 
 
     ## Symmetrize it? -- no, seems to already be done.
 #   tmp = pd.concat([string_net.ix[:,1], string_net.ix[:,0], string_net.ix[:,2]], axis=1)
@@ -161,6 +164,7 @@ def load_string_net(organism):
 def load_op_table(organism):
 ## Now, require the operons table!
 ## DONE? (need to verify): Allow for no operons table (e.g. yeast)
+## TODO: reindex op_table by SysName1 -- choosing via index is about 4x faster than [np.where(...)]
     org_files = np.array( os.listdir('./' + organism + '/') )
     op_table = pd.DataFrame()
     try:
@@ -168,10 +172,10 @@ def load_op_table(organism):
                                                                 for f in org_files] ) ][ 0 ]
         print op_file
         op_table = pd.read_table(op_file, compression='gzip') 
-        op_table = op_table[ [ "SysName1", "SysName2", "bOp", "pOp" ] ]
+        op_table = op_table[ [ 'SysName1', 'SysName2', 'bOp', 'pOp' ] ]
         print op_table.shape
     except:
-        print "No operons file"
+        print 'No operons file'
         
     return op_table
 
@@ -198,7 +202,7 @@ def load_pynkey_code():
 def get_regex( strings, min_ignore=2 ):
     nchar = np.array( [ len(i) for i in strings ] )
     out = ''
-    for i in np.arange( nchar.max() ):
+    for i in xrange( nchar.max() ):
         d = {}
         for str in strings:
             if i >= len(str):
@@ -241,7 +245,7 @@ def init_biclusters( ratios, k_clust, method='kmeans' ):
         _, km1 = clust.kmeans2( x.values, k_clust, iter=20, minit='random' )
 
          ## seed each bicluster with rows=output from kmeans and cols=random (1/2 of all cols)
-        for k in range(k_clust):
+        for k in xrange(k_clust):
             rows = ratios.index.values[ np.where( km1 == k ) ]
             if method == 'kmeans': 
                 if len(rows) == 0:
@@ -251,7 +255,7 @@ def init_biclusters( ratios, k_clust, method='kmeans' ):
                 new_rows = ratios.index.values[ rand.choice(ratios.shape[0], max(len(rows),10), replace=False) ]
                 clusters[k] = bicluster( k, np.unique( np.concatenate( (rows, new_rows), 0 ) ), x )
     elif method == 'random':
-        for k in range(k_clust):
+        for k in xrange(k_clust):
             rows = ratios.index.values[ rand.choice(ratios.shape[0], 20, replace=False) ]
             clusters[k] = bicluster( k, np.unique( rows ), x )
     return clusters
