@@ -1,16 +1,17 @@
 import sys
 import copy
 
-from numpy import nan as NA
 import numpy as np
+from numpy import nan as NA
 from numpy import random as rand
 import pandas as pd
 
 from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
 
-from slice_sampler import slice_sampler
-
+from utils import slice_sampler
+import scores
 import funcs
+import params
 
 class bicluster:
     k = None    ## cluster index
@@ -65,7 +66,7 @@ class bicluster:
     def volume( self ):
         return float(len(self.rows) * len(self.cols))
 
-    def residue( self, ratios ):
+    def compute_residue( self, ratios ):
         rats = ratios.ix[ self.rows, self.cols ]
         ##if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1 or \
         ##        np.mean( rats.isnull().values ) > 0.95:
@@ -73,13 +74,200 @@ class bicluster:
         ##    return 1.0
         return funcs.matrix_residue( rats )
 
-    def var( self, ratios, var_add=0.1 ):
-        rats = ratios.ix[self.rows, self.cols].copy() ## get the bicluster's submatrix of the data
-        mn = rats.mean(0) ## subtract bicluster mean profile
-        rats -= mn
-        return np.nanvar(rats.values) / (np.nanvar(mn.values) + var_add)
+    def compute_var( self, ratios, var_add=0.1 ):
+        rats = ratios.ix[self.rows, self.cols] ##.copy() ## get the bicluster's submatrix of the data
+        ##mn = nanmean(rats,0) ## subtract bicluster mean profile
+        ##rats -= mn
+        ##return np.nanvar(rats.values) / (np.nanvar(mn.values) + var_add)
+        return funcs.matrix_var( rats, var_add )
 
-    def re_seed_if_necessary( self, clusters, ratios, min_rows=3, max_rows=80 ):
+    def compute_network_density( self, network ):
+        return funcs.subnetwork_density( self.rows, network )
+
+    def compute_meme_pval( self ):
+        if np.size(self.mast_out,0) <= 0:
+            return NA
+        df = self.mast_out.ix[ self.rows ] ## np.in1d( self.mast_out.Gene, self.rows ) ] ## make sure index of mast_out is Gene !!!
+        mn = np.nanmean( log10( df['P-value'] ) )
+        return mn
+
+    ## Up-weight moves into clusters with <= 15 rows; down-weight moves out of clusters with >15 rows
+    ## DONE: a little less heuristic?
+    ## DONE? less "sharply-peaked" at 15? Perhaps make it "level out" between say 8 and 23
+    ## DONE: plot this and see -- I think it DECREASES for really big volumes, want to fix this
+    def get_volume_row_scores( self, all_genes ): ##, is_in_r )
+        thresh = params.avg_genes_per_cluster
+        is_in = np.in1d( all_genes, self.rows )
+        lr = len(self.rows)
+        score_vr = np.array( [ (+1.0 if i else -1.0) * ( thresh - lr ) for i in is_in ] )
+        if lr >= thresh - 7 and lr <= thresh + 7:
+            score_vr /= 5.0
+        elif lr >= thresh - 12 and lr <= thresh + 12:
+            score_vr /= 2.0
+        return score_vr
+
+    ## Just up-weight moves that add columns (to prevent shrinkage)
+    ## NOTE that as is, the weighting decreases for really high #cols... is this what we want?
+    def get_volume_col_scores( self, ratios ): ##, is_in_c )
+        is_in = np.in1d( ratios.cols.values, self.cols )
+        lc = len(self.cols)
+        score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
+        ##score_vc = fill(NA, length(b.scores_c)) ## Do we really care how many cols there are?
+        return score_vc
+
+    ## Up-weight moves OUT if counts_g is HIGH, and moves IN if counts_g is LOW
+    ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+    def get_row_count_scores( self, counts_g, all_genes ):
+        is_in = np.in1d( all_genes, self.rows )
+        score_g = Bicluster.get_cluster_row_count_scores( counts_g )
+        score_g = np.array( [ (+score_g[i] if is_in[i] else -score_g[i]) for i in xrange(len(is_in)) ] )
+        return score_g
+
+    ## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
+    ##    each gene is added/removed from the cluster
+    def get_update_scores( self, update_func, all_genes_or_cols ):
+        return None
+
+#     def get_expr_rowcol_scores( self, ratios, var_add=0.1 ):
+#      ## Try getting the effect of adding/removing each row/col from this cluster on its total variance
+#      ## DONE: want to have biclusters with larger row-variance, so normalize var(x)/var(mn)
+#      ## Other variables to be tweaked: currently using out_var(x)=var(x)/(var(colmeans(x))+1) --
+#      ##       perhaps the "1" should be lower... see "var_add" variable
+#      ## Commented out volume factor - shoul add this in to total, but externally to this function
+#         rows=self.rows; cols=self.cols; score_r=self.scores_r; score_c=self.scores_c
+
+#      ##const bsize = length(rows)*length(cols)
+#         vr = self.compute_var( ratios )
+#         resid = self.compute_residue( ratios )
+
+#         rats = ratios.ix[self.rows, self.cols].copy() ## get the bicluster's submatrix of the data
+#         mn = nanmean(rats,0) ## subtract bicluster mean profile
+#         rats -= mn
+
+#      ##xx::Matrix{T} = x.x[:,cols] ## This uses less RAM than previous version; about same speed
+#         xx = ratios.ix[:,cols]
+#         mn = np.nanmean(xx.ix[rows,:], 0)
+#         x2 = xx.copy()  ## Get the full matrix; subtract the mean biclust profile
+#         x2.apply( lambda x: x-mn )
+    
+#      ## Get changes in variance for adding/removing rows; normalize by change in cluster volume. Lower is better!
+#      ##v_factor::T = length(cols) / bsize
+#         if len(self.scores_r) == 0:
+#             self.scores_r = np.empty(size(ratios,0))
+# #     tmpVec::Vector{T} = Array(T, size(xx,2))
+#         for r in ratios.index.values: ## Iterate over rows
+#             isIn = r in rows ## r is in the bicluster
+#             newR = np.delete(rows,np.where(rows==r)) if isIn else np.append(rows,r) ## TBD: prevent reallocation of vector here?
+#             newvr = np.nanvar(x2.ix[newR,:]) / ( np.nanvar(np.nanmean(xx.ix[newR,:],1) ) ) + var_add ) ## DONE -- prevent realloc of matrix here
+#        ## NOTE: the colmeans() above is the slow part here -- convince yourself that you need it!
+#        score_r[r] = ( newvr - vr ) #/ (vr+0.01) ##+ ( isIn ? v_factor : -v_factor )
+#     end
+
+#     ##xx=x.x[rows,:]
+#     xx=view(x.x,rows,[1:size(x.x,2)])
+#     mn=colmeans(xx)
+#     x2=similar(xx) ## Get the full matrix; subtract the mean biclust profile
+#     for i=1:size(x2,2) x2[:,i] = xx[:,i] - mn[i]; end
+
+#     ##v_factor = length(rows) / bsize
+#     if length(score_c) == 0 score_c = Array(T,size(x.x,2)); end
+#     for c in 1:size(x.x,2) ## Iterate over cols
+#        isIn = in(cols, c) ##any(cols .== c) ## c is in the bicluster
+#        newC = isIn ? remove(cols,c) : [cols, [c]] ##append(cols, c) ##[cols,c]
+#        newvr = nanvar(x2[:,newC]) / ( nanvar(mn[newC]) + var_add )
+#        score_c[c] = ( newvr - vr ) #/ (vr+0.01) ##+ ( isIn ? v_factor : -v_factor )
+#     end
+
+#     b.var = vr
+#     b.resid = resid
+#     b.scores_r = score_r ## Not needed since the vector is filled (passed by reference)
+#     b.scores_c = score_c ## but we'll do it here anyway b/c it doesn't slow things down much
+#     b
+# end
+
+# #@iprofile begin
+# ## NOTE WE ASSUME THE NETWORK IS "SYMMETRIZED" if it is undirected - i.e. (n1,n2,w) and (n2,n1,2) are both in the dataframe.
+# ## NOTE we return log10(density) changes, which is OPPOSITE of ROW/MOTIF scores because increases are better
+# function get_cluster_network_row_scores( b::bicluster, network::DataFrame ) 
+#     global ratios, all_genes
+#     ## Note that right now rows in the bicluster is the index into the rownames of the expression matrix!!! TODO: change this!
+#     r_rownames = rownames(ratios)
+#     rows = r_rownames[b.rows] ##keys( all_genes )[ in( values( all_genes ), b.rows ) ]
+#     net = sub( network, findin( network["x1"], rows ) ) ## Assume network is symmetric!
+#     grps = groupby( net, "x2" ) ## each group is a subnetwork with all genes in bicluster (x1) connected to a given gene
+#     grpnames = convert( Vector{ASCIIString}, [ grps[i]["x2"][1] for i=1:length( grps ) ] ) ## the given gene for each group
+#     grpname_lookup = [ grpnames[i] => i for i=1:length(grps) ]
+#     new_net = net2 = sub( net, findin( net["x2"], rows ) )   ## subnetwork just connecting between nodes in the bicluster
+#     sum_weights = sum( new_net["x3"] )
+#     dens = log10( sum_weights / length(rows)^2 + 1e-9 ) ## Already symmetrized, need to decrease count by 1/2
+#     n2 = net2["x2"] ##Vector{ASCIIString} = net2[2]
+
+#     score_n = b.scores_n
+#     if length(score_n) == 0 score_n = Array(Float32,size(ratios.x,1)); end    
+#     new_dens = 0.
+#     for r in r_rownames
+#         isIn = in(rows, r) 
+#         if isIn ## r is in the bicluster -- remove the node from the bicluster-only subnetwork and recalc the density
+#             newR = remove(rows,r)
+#             new_net = sub( net2, findin( n2, newR ) ) ##net2[2].data, newR ) ) )
+#             new_dens = sum( new_net["x3"] ) / length(newR) / length(rows)
+#         else
+#             try 
+#                 new_net = grps[ grpname_lookup[r] ]
+#                 new_dens = ( sum_weights + sum( new_net["x3"] ) ) / (length(rows)+1) / length(rows)
+#             catch ## no subnetwork for this "r"; so use the bicluster's subnetwork, but diminished by increased length(newR)
+#                 new_dens = sum_weights / (length(rows)+1) / length(rows)
+#             end
+#         end
+#         score_n[all_genes[r]] = log10(new_dens+1e-9) - dens ##/ (dens+0.1) ##+ ( isIn ? v_factor : -v_factor )  ## lower is BETTER
+#     end
+#     b.scores_n = score_n
+#     b.dens_string = dens
+#     b
+# end
+# #end # profiler
+
+# function get_cluster_meme_row_scores( b::bicluster )
+#     global ratios, all_genes
+#     #println("IN HERE: MOT SCORES $(b.k)")
+
+#     score_m = b.scores_m
+#     if length(score_m) == 0 score_m = Array(Float32,size(ratios.x,1)); end
+#     r_rownames = rownames(ratios)
+#     genes = r_rownames[b.rows]
+#     #sz=size(b.mast_out);#println("HERE MOT1 $sz")
+#     ## TODO: don't only use values for genes that are in the ratios matrix.
+#     ## DONE: make mast_out into a DataFrame for easier searching, subsetting
+#     if size(b.mast_out,1) <= 0
+#         b.scores_m = float32( zeros( size(ratios.x,1) ) )
+#         b.meanp_meme = NA
+#         return( b )
+#     end
+#     df = sub( b.mast_out, findin( b.mast_out["Gene"], genes ) )
+#     #sz=size(df);#println("HERE MOT2 $sz")
+#     mn::Float32 = nanmean( log10( df["P-value"].data ) )
+#     pvals::Dict{ASCIIString,Float32} = Dict{ASCIIString,Float32}()
+#     for i in 1:size(b.mast_out,1) pvals[b.mast_out["Gene"].data[i]] = b.mast_out["P-value"].data[i]; end
+#     not_there = r_rownames[ ! in(r_rownames, b.mast_out["Gene"].data) ]
+#     for r in not_there pvals[r] = NA; end
+#     for g in r_rownames ## Iterate over rows
+#        isIn = in(genes, g) ##any(rows .== r) ## r is in the bicluster
+#        newR = isIn ? remove(genes,g) : [genes,[g]]
+#        pvs = float32( [ pvals[r] for r in newR ] )
+#        # pvs = df["P-value"].data
+#        # if isIn pvs = sub( df, df["Gene"].data .!= g )["P-value"].data
+#        # else    pvs = [ pvs, sub( b.mast_out, b.mast_out["Gene"].data .== g )["P-value"].data ]
+#        # end
+#        newmn = nanmean( log10( pvs ) )
+#        score_m[all_genes[g]] = newmn - mn ##/ (mn+0.1) ##+ ( isIn ? v_factor : -v_factor )
+#     end
+
+#     b.scores_m = score_m
+#     b.meanp_meme = mn
+#     b
+# end
+
+    def re_seed_if_necessary( self, clusters, ratios, all_genes, min_rows=3, max_rows=80 ):
         ## Need to fill in "empty" clusters, mostly because var is non-defined, Also because meme-ing only works 
         ## with >2 sequences. 
         ## Squash clusters that get way too big (DONE: just remove some to bring it down to max_rows)
@@ -90,7 +278,7 @@ class bicluster:
         ## DONE: add rows that are preferentially in few (or no) other clusters -- 
         ## sample from get_cluster_row_counts(clusters)
         ##clust.rows = unique([clust.rows, [Distributions.sample([1:nrow(ratios.x)]) for i=1:5]]) ## add 5 random rows
-        counts_g = get_all_cluster_row_counts( clusters )
+        counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
         g = np.array( counts_g.keys() )
         counts_g = np.array( counts_g.values() )
         if len(self.rows) < min_rows:
@@ -107,18 +295,6 @@ class bicluster:
                                                                         len(self.rows)-max_rows+1 ) ) ]
             self.rows = self.rows[ np.logical_not( in1d(self.rows, tmp_rows) ) ]
         return self
-
-    def network_density( self, network ):
-        return funcs.subnetwork_density( self.rows, network )
-
-    def meme_pval( self ):
-        if np.size(self.mast_out,0) <= 0:
-            return NA
-
-        genes = self.rows
-        df = self.mast_out[ np.in1d( self.mast_out.Gene, genes ) ]
-        mn = np.nanmean( log10( df['P-value'] ) )
-        return mn
 
 #     def fill_all_scores( self, iter, ratios, string_net, force=False, verbose=False ):
 #         if verbose:
@@ -161,21 +337,8 @@ class bicluster:
 # end
 
 
-# function copy_cluster( cc::bicluster, full=true, everything=true )
-#     out = cc
-#     if everything ## make copies of everything
-#         out = bicluster( cc.k, copy(cc.rows), copy(cc.cols), cc.var, cc.resid, cc.dens_string, cc.meanp_meme,
-#                         copy(cc.scores_r), copy(cc.scores_c), copy(cc.scores_n), copy(cc.scores_m), 
-#                         copy(cc.meme_out), copy(cc.mast_out), cc.changed )
-#     elseif full ## Make copies of rows/cols so if they get updated in the original, they won't change here.
-#         out = bicluster( cc.k, copy(cc.rows), copy(cc.cols), cc.var, cc.resid, cc.dens_string, cc.meanp_meme, 
-#                         cc.scores_r, cc.scores_c, cc.scores_n, cc.scores_m, 
-#                         cc.meme_out, cc.mast_out, cc.changed )
-#     else ## This is a shallow copy - changes to rows/cols in this cluster will mirror those in cc
-#         out = bicluster( cc.k, cc.rows, cc.cols, cc.var, cc.resid, cc.dens_string, cc.meanp_meme, 
-#                         cc.scores_r, cc.scores_c, cc.scores_n, cc.scores_m, 
-#                         cc.meme_out, cc.mast_out, cc.changed )
-                   
-#     end
-#     out
-# end
+## THis is a static function so outside the definition of the bicluster
+## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+def get_cluster_row_count_scores( counts_g ):
+    thresh = params.avg_clusters_per_gene ##1.3 ## 2.0 ## 3.0 ## lower is better; coerce removing if gene is in more than 2 clusters
+    return { (i,j-thresh) for i,j in counts_g.items() }

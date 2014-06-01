@@ -33,13 +33,12 @@ def re_seed_all_clusters_if_necessary( clusters, ratios ):
         clusters[k] = clusters[k].re_seed_if_necessary( clusters, ratios )
     return clusters
 
-
 ## number of clusters each gene is in - need to compute only once over all clusters
 ## all_genes provides reference of all possible gene names. May want to use ratios.index.values for this
 def get_all_cluster_row_counts( clusters, all_genes ):
     ##counts = np.array( [len(clust.rows) for clust in clusters.values()] )
     ##return np.bincount( counts )
-    d = dict( zip(list(all_genes), list(zeros(len(all_genes), int))) )
+    d = dict( zip(list(all_genes), list(np.zeros(len(all_genes), int))) )
     for cc in clusters.values():
         for r in cc.rows:
             d[r] += 1
@@ -59,10 +58,15 @@ def matrix_residue( rats ):
     average_r = np.nanmean( np.abs( rats.values ) )
     return average_r
 
+def matrix_var( rats, var_add=0.1 ):
+    mn = np.nanmean(rats, 0) ## subtract bicluster mean profile
+    return np.nanvar(rats-mn) / (np.nanvar(mn) + var_add)
+
 ## Use edge density score: sum of edge weights (=number of edges for all weights =1) / number of nodes^2
 ## This is the faster version that uses SubDataFrames
+## TODO: use numexpr to speed up and avoid temporary array creation
 def subnetwork_density( rows, network ):
-    net1 = network[ np.in1d( network.protein1, rows ) ]
+    net1 = network.ix[ rows ] ##np.in1d( network.protein1, rows ) ]
     net2 = net1[ np.in1d( net1.protein2, rows ) ]
     dens = float(np.sum( net2.weight )) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
     return np.log10( dens+1e-9 )
