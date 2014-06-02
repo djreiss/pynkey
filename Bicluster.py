@@ -82,13 +82,9 @@ class bicluster:
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
-            rows2 = rows
-            if is_in[i]:
-                rows2 = np.append( rows, r )
-            else:
-                rows2 = rows[ rows != r ]
+            rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
             all_resids[i] = funcs.matrix_residue( rats.ix[ rows2, ] )
-        all_resids
+        return all_resids - resid
 
     def compute_var( self, ratios, var_add=0.1 ):
         rats = ratios.ix[self.rows, self.cols] ##.copy() ## get the bicluster's submatrix of the data
@@ -104,17 +100,13 @@ class bicluster:
         is_in = np.in1d( all_genes, self.rows )
         rows = self.rows
         net1 = network.ix[ self.rows ]
-        dens = funcs.matrix_residue( rows, net1 )
+        dens = funcs.subnetwork_density( rows, net1 )
         all_dens = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
-            rows2 = rows
-            if is_in[i]:
-                rows2 = np.append( rows, r )
-            else:
-                rows2 = rows[ rows != r ]
+            rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
             all_dens[i] = funcs.subnetwork_density( rows2, net1 )
-        all_dens
+        return all_dens - dens
 
     def compute_meme_pval( self ):
         if np.size(self.mast_out,0) <= 0:
@@ -151,9 +143,36 @@ class bicluster:
     ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
     def get_row_count_scores( self, counts_g, all_genes ):
         is_in = np.in1d( all_genes, self.rows )
-        score_g = Bicluster.get_cluster_row_count_scores( counts_g )
-        score_g = np.array( [ (+score_g[i] if is_in[i] else -score_g[i]) for i in xrange(len(is_in)) ] )
+        score_g = get_cluster_row_count_scores( counts_g )
+        score_g = np.array( [ (+score_g[all_genes[i]] if is_in[i] else -score_g[all_genes[i]]) for i in xrange(len(is_in)) ] )
         return score_g
+
+    ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+    def fill_all_scores(self, counts_g, all_genes, ratios, string_net):
+        self.scores_r = self.compute_residue_deltas( ratios, all_genes )
+        self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
+
+    ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+    def get_floc_scoresDF_rows(self, counts_g, all_genes, iter, ratios):
+        is_in = np.in1d( all_genes, self.rows)
+        ## only use them if their weights are > 0
+        weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
+        NAs =  np.repeat(NA, len(self.scores_r)) if (weight_r <= 0 or weight_n <= 0 or weight_m <= 0) else NA
+        score_r = self.scores_r if weight_r > 0 else NAs
+        score_n = self.scores_n if abs(weight_n) > 0 else NAs
+        score_m = self.scores_m if weight_m > 0 else NAs
+        score_vr = self.get_volume_row_scores( all_genes )
+        score_g = self.get_row_count_scores( counts_g, all_genes )
+        out = pd.DataFrame( { 'row_col_ind':all_genes,
+                              'is_in':is_in,
+                              'is_row_col':np.repeat('r', len(self.scores_r)), ## CANT: move this outside the loop
+                              'k':np.repeat(self.k, len(self.scores_r)),
+                              'score':score_r,
+                              'score_n':score_n,
+                              'score_m':score_m,
+                              'score_v':score_vr,
+                              'score_g':score_g } )
+        return out
 
 #     def get_expr_rowcol_scores( self, ratios, var_add=0.1 ):
 #      ## Try getting the effect of adding/removing each row/col from this cluster on its total variance
@@ -368,7 +387,7 @@ class bicluster:
 ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
 def get_cluster_row_count_scores( counts_g ):
     thresh = params.avg_clusters_per_gene ##1.3 ## 2.0 ## 3.0 ## lower is better; coerce removing if gene is in more than 2 clusters
-    return { (i,j-thresh) for i,j in counts_g.items() }
+    return dict( { (i,j-thresh) for i,j in counts_g.items() } )
 
 ## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
 ##    each gene is added/removed from the cluster
