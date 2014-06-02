@@ -74,6 +74,22 @@ class bicluster:
         ##    return 1.0
         return funcs.matrix_residue( rats )
 
+    def compute_residue_deltas( self, ratios, all_genes ):
+        is_in = np.in1d( all_genes, self.rows )
+        rows = self.rows
+        rats = ratios.ix[ :, self.cols ]
+        resid = funcs.matrix_residue( ratios.ix[ rows ] )
+        all_resids = np.zeros( len( all_genes ), float )
+        for i in xrange(len(all_genes)):
+            r = all_genes[i]
+            rows2 = rows
+            if is_in[i]:
+                rows2 = np.append( rows, r )
+            else:
+                rows2 = rows[ rows != r ]
+            all_resids[i] = funcs.matrix_residue( rats.ix[ rows2, ] )
+        all_resids
+
     def compute_var( self, ratios, var_add=0.1 ):
         rats = ratios.ix[self.rows, self.cols] ##.copy() ## get the bicluster's submatrix of the data
         ##mn = nanmean(rats,0) ## subtract bicluster mean profile
@@ -83,6 +99,22 @@ class bicluster:
 
     def compute_network_density( self, network ):
         return funcs.subnetwork_density( self.rows, network )
+
+    def compute_network_density_deltas( self, network, all_genes ):
+        is_in = np.in1d( all_genes, self.rows )
+        rows = self.rows
+        net1 = network.ix[ self.rows ]
+        dens = funcs.matrix_residue( rows, net1 )
+        all_dens = np.zeros( len( all_genes ), float )
+        for i in xrange(len(all_genes)):
+            r = all_genes[i]
+            rows2 = rows
+            if is_in[i]:
+                rows2 = np.append( rows, r )
+            else:
+                rows2 = rows[ rows != r ]
+            all_dens[i] = funcs.subnetwork_density( rows2, net1 )
+        all_dens
 
     def compute_meme_pval( self ):
         if np.size(self.mast_out,0) <= 0:
@@ -122,11 +154,6 @@ class bicluster:
         score_g = Bicluster.get_cluster_row_count_scores( counts_g )
         score_g = np.array( [ (+score_g[i] if is_in[i] else -score_g[i]) for i in xrange(len(is_in)) ] )
         return score_g
-
-    ## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
-    ##    each gene is added/removed from the cluster
-    def get_update_scores( self, update_func, all_genes_or_cols ):
-        return None
 
 #     def get_expr_rowcol_scores( self, ratios, var_add=0.1 ):
 #      ## Try getting the effect of adding/removing each row/col from this cluster on its total variance
@@ -342,3 +369,9 @@ class bicluster:
 def get_cluster_row_count_scores( counts_g ):
     thresh = params.avg_clusters_per_gene ##1.3 ## 2.0 ## 3.0 ## lower is better; coerce removing if gene is in more than 2 clusters
     return { (i,j-thresh) for i,j in counts_g.items() }
+
+## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
+##    each gene is added/removed from the cluster
+def get_update_scores( cluster, update_func, *args ):
+    print args
+    return update_func( cluster, *args )
