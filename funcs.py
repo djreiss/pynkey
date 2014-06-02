@@ -35,9 +35,11 @@ def re_seed_all_clusters_if_necessary( clusters, ratios ):
 
 ## number of clusters each gene is in - need to compute only once over all clusters
 ## all_genes provides reference of all possible gene names. May want to use ratios.index.values for this
+## TBD NOW: instead of returning a dict, return a pandas Series. No, dict is more than 10x faster
 def get_all_cluster_row_counts( clusters, all_genes ):
     ##counts = np.array( [len(clust.rows) for clust in clusters.values()] )
     ##return np.bincount( counts )
+    ##d = pd.Series(np.zeros(len(all_genes), int), all_genes) 
     d = dict( zip(list(all_genes), list(np.zeros(len(all_genes), int))) )
     for cc in clusters.values():
         for r in cc.rows:
@@ -45,29 +47,38 @@ def get_all_cluster_row_counts( clusters, all_genes ):
     return d
 
 def matrix_residue( rats ):
-    if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1 or \
-            np.mean( rats.isnull().values ) > 0.95:
+    if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1: ## or \
+            ##np.mean( rats.isnull().values ) > 0.95:
         warnings.warn( "COULD NOT COMPUTE RESIDUE" )
         return 1.0
 
-    d_rows = rats.mean(1)
-    d_cols = rats.mean(0)
-    d_all = d_rows.mean() ## pandas default is to ignore nan's
-    rats = rats.copy() + d_all - np.add.outer( d_rows, d_cols )
+    rats = rats.values ## do it all in numpy - faster
+    d_rows = np.nanmean(rats, 1) ##rats.mean(1)
+    d_cols = np.nanmean(rats, 0) ##rats.mean(0)
+    d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
+    rats = np.abs( rats + d_all - np.add.outer( d_rows, d_cols ) )
+    ## another way of doing this, but about the same speed:
+    ## rats = ((rats+d_all-d_cols).T-d_rows).T
 
-    average_r = np.nanmean( np.abs( rats.values ) )
+    average_r = np.nanmean( rats )
     return average_r
 
 def matrix_var( rats, var_add=0.1 ):
+    rats = rats.values
     mn = np.nanmean(rats, 0) ## subtract bicluster mean profile
     return np.nanvar(rats-mn) / (np.nanvar(mn) + var_add)
 
 ## Use edge density score: sum of edge weights (=number of edges for all weights =1) / number of nodes^2
 ## This is the faster version that uses SubDataFrames
-## TODO: use numexpr to speed up and avoid temporary array creation
-def subnetwork_density( rows, network ):
-    net1 = network.ix[ rows ] ##np.in1d( network.protein1, rows ) ]
-    net2 = net1[ np.in1d( net1.protein2, rows ) ]
+## TODO: use numexpr to speed up and avoid temporary array creation?
+def subnetwork_density( rows, network, already_subnetted=False ):
+    ##net2 = net1[ np.in1d( net1.protein2, rows ) ]
+    if already_subnetted: ## presumed already subnetted and index set to protein2
+        net1 = network
+    else:
+        net1 = network.ix[rows]
+        net1.set_index( ['protein2'], inplace=True ) ##[ np.in1d( net1.protein2, rows ) ]
+    net2 = net1.ix[ rows ]
     dens = float(np.sum( net2.weight )) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
     return np.log10( dens+1e-9 )
 
