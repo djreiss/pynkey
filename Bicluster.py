@@ -78,22 +78,34 @@ class bicluster:
     ## %lprun -f funcs.matrix_residue Bicluster.bicluster.compute_residue_deltas(clust,ratios,all_genes)
     ##    or
     ## %lprun -f Bicluster.bicluster.compute_residue_deltas Bicluster.bicluster.compute_residue_deltas(clust,ratios,all_genes)
-    def compute_residue_deltas( self, ratios, all_genes ):
-        is_in = np.in1d( all_genes, self.rows )
-        rows = self.rows
-        rats = ratios.ix[ :, self.cols ]
-        resid = funcs.matrix_residue( ratios.ix[ rows ] )
+    def compute_residue_deltas( self, ratios, all_genes, actually_cols=False ):
+        if not actually_cols:
+            is_in = np.in1d( all_genes, self.rows )
+            rows = self.rows
+            rats = ratios.ix[ :, self.cols ]
+            resid = funcs.matrix_residue( rats.ix[ rows, : ] )
+        else:  ## all_genes is actually all_cols==ratios.columns.values
+            is_in = np.in1d( all_genes, self.cols )
+            rows = self.cols
+            rats = ratios.ix[ self.rows, : ]
+            resid = funcs.matrix_residue( rats.ix[ :, rows ] )
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
-            rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
-            all_resids[i] = funcs.matrix_residue( rats.ix[ rows2, ] )
+            rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
+            if not actually_cols:
+                all_resids[i] = funcs.matrix_residue( rats.ix[ rows2, : ] )
+            else:
+                print rats.ix[ :, rows2 ].shape
+                all_resids[i] = funcs.matrix_residue( rats.ix[ :, rows2 ] )
+                print i, all_resids[i]
         return all_resids - resid
 
     def compute_var( self, ratios, var_add=0.1 ):
         rats = ratios.ix[ self.rows, self.cols ] ##.copy() ## get the bicluster's submatrix of the data
         return funcs.matrix_var( rats, var_add )
 
+    ## TBD: need to do for cols as well as genes; just like resid_deltas function
     def compute_var_deltas( self, ratios, all_genes ):
         is_in = np.in1d( all_genes, self.rows )
         rows = self.rows
@@ -146,8 +158,8 @@ class bicluster:
 
     ## Just up-weight moves that add columns (to prevent shrinkage)
     ## NOTE that as is, the weighting decreases for really high #cols... is this what we want?
-    def get_volume_col_scores( self, ratios ): ##, is_in_c )
-        is_in = np.in1d( ratios.cols.values, self.cols )
+    def get_volume_col_scores( self, all_cols ): ##, is_in_c )
+        is_in = np.in1d( all_cols, self.cols )
         lc = len(self.cols)
         score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
         ##score_vc = fill(NA, length(b.scores_c)) ## Do we really care how many cols there are?
@@ -162,11 +174,12 @@ class bicluster:
         return score_g
 
     ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
-    def fill_all_scores(self, all_genes, ratios, string_net, counts_g):
+    def fill_all_scores(self, all_genes, ratios, string_net, counts_g, all_cols):
         self.resid = self.compute_residue( ratios )
         self.dens_string = self.compute_network_density( string_net )
         self.scores_r = self.compute_residue_deltas( ratios, all_genes )
         self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
+        self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
         return self
 
     ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
@@ -194,7 +207,7 @@ class bicluster:
     def get_floc_scoresDF_cols(self, iter, ratios):
         all_cols = ratios.columns.values
         is_in = np.in1d( all_cols, self.cols )
-        (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights( iter, ratios )
+        (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = scores.get_score_weights( iter, ratios )
         NAs = np.repeat(NA, len(self.scores_c)) ## if weight_c <= 0 else NA
         score_c = self.scores_c if weight_c > 0 else NAs
         score_vc = self.get_volume_col_scores( all_cols )
