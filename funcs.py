@@ -56,11 +56,11 @@ def matrix_residue( rats ):
     d_rows = np.nanmean(rats, 1) ##rats.mean(1)
     d_cols = np.nanmean(rats, 0) ##rats.mean(0)
     d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
-    rats = np.abs( rats + d_all - np.add.outer( d_rows, d_cols ) )
+    rats = rats + d_all - np.add.outer( d_rows, d_cols )
     ## another way of doing this, but about the same speed:
-    ## rats = ((rats+d_all-d_cols).T-d_rows).T
+    ##rats = (rats+d_all-d_cols).T-d_rows
 
-    average_r = np.nanmean( rats )
+    average_r = np.nanmean( np.abs(rats) )
     return average_r
 
 def matrix_var( rats, var_add=0.1 ):

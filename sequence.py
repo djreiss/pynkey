@@ -171,7 +171,7 @@ def generateAllKmers( length ):
 #                 seq = seqs.values()[i].seq ## otherwise assumed to be a dict of Bio.Seqs (e.g. genome_seqs)
 #             seq_rev = seq.reverse_complement()
 #             for ss in all_combos:
-#                 if ss not in d.keys():
+#                 if ss not in d:
 #                     d[ss] = 0
 #                 d[ss] += seq.count(ss)
 #                 d[ss] += seq_rev.count(ss)
@@ -193,7 +193,7 @@ def generateAllKmers( length ):
 #                 seq = seqs.values()[i].seq ## otherwise assumed to be a dict of Bio.Seqs (e.g. genome_seqs)
 #             seq_rev = Seq(seq, IUPAC.ExtendedIUPACDNA()).reverse_complement()
 #             for ss in all_combos:
-#                 if ss not in d.keys():
+#                 if ss not in d:
 #                     d[ss] = 0
 #                 d[ss] += len(re.findall('(?='+ss+')', seq))
 #                 d[ss] += len(re.findall('(?='+ss+')', seq_rev)) 
