@@ -1,25 +1,5 @@
 # Use FLOC algorithm to update clusters
 
-
-function get_floc_scoresDF_cols(cluster::bicluster)
-    inds = [1:length(cluster.scores_c)]
-    is_in_c = in( inds, cluster.cols )
-    (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights() ## only use them if their weights are > 0
-    NAs = fill(NA, length(cluster.scores_c))
-    score_c = weight_c > 0 ? cluster.scores_c : NAs
-    score_vc = get_cluster_volume_col_scores( cluster, is_in_c )
-    out = DataFrame( { "row_col_ind" => inds,
-                      "is_in" => is_in_c,
-                      "is_row_col" => fill('c', length(cluster.scores_c)), ## CANT: move this outside the loop
-                      "k" => fill(cluster.k, length(cluster.scores_c)),
-                      "score" => score_c,
-                      "score_n" => NAs, ## CANT: move this outside the loop
-                      "score_m" => NAs,  ## CANT: move this outside the loop
-                      "score_v" => score_vc,
-                      "score_g" => NAs } )
-    out
-end
-
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
 #get_floc_scores_all(clusters::Dict{Int64,bicluster}) = get_floc_scores_all(clusters, 9999, 9999) ## 5, 20)
 

@@ -171,7 +171,7 @@ class bicluster:
 
     ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
     def get_floc_scoresDF_rows(self, iter, all_genes, ratios, counts_g):
-        is_in = np.in1d( all_genes, self.rows)
+        is_in = np.in1d( all_genes, self.rows )
         ## only use them if their weights are > 0 and they have been filled via fill_all_scores()
         weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
         NAs =  np.repeat(NA, len(self.scores_r)) if (weight_r <= 0 or weight_n <= 0 or weight_m <= 0) else NA
@@ -180,7 +180,7 @@ class bicluster:
         score_m = self.scores_m if weight_m > 0 and len(self.scores_m)>0 else NAs
         score_vr = self.get_volume_row_scores( all_genes )
         score_g = self.get_row_count_scores( all_genes, counts_g )
-        out = pd.DataFrame( { 'row_col_ind':all_genes,
+        out = pd.DataFrame( { 'row_col':all_genes,
                               'is_in':is_in,
                               'is_row_col':np.repeat('r', len(self.scores_r)), ## CANT: move this outside the loop
                               'k':np.repeat(self.k, len(self.scores_r)),
@@ -189,6 +189,24 @@ class bicluster:
                               'score_m':score_m,
                               'score_v':score_vr,
                               'score_g':score_g } )
+        return out
+
+    def get_floc_scoresDF_cols(self, iter, ratios):
+        all_cols = ratios.columns.values
+        is_in = np.in1d( all_cols, self.cols )
+        (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights( iter, ratios )
+        NAs = np.repeat(NA, len(self.scores_c)) ## if weight_c <= 0 else NA
+        score_c = self.scores_c if weight_c > 0 else NAs
+        score_vc = self.get_volume_col_scores( all_cols )
+        out = pd.DataFrame( { 'row_col':all_cols,
+                              'is_in':is_in,
+                              'is_row_col':np.repeat('c', len(self.scores_c)), ## CANT: move this outside the loop
+                              'k':np.repeat(self.k, len(self.scores_c)),
+                              'score':score_c,
+                              'score_n':NAs, ## CANT: move this outside the loop
+                              'score_m':NAs,  ## CANT: move this outside the loop
+                              'score_v':score_vc,
+                              'score_g':NAs } )
         return out
 
     def re_seed_if_necessary( self, clusters, ratios, all_genes, min_rows=3, max_rows=80 ):
