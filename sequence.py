@@ -226,7 +226,7 @@ def getBgCounts_FAST_ACCURATE_BIGMEMORY( seqs, order=3, include_revComp=True ):
                 if include_revComp:
                     c2 = Counter([seq_rev[i:(i+ord1)] for i in xrange(len(seq_rev)-ord)])
             for ss in all_combos:
-                d[ss] += c1[ss] + c2[ss] if include_revComp else 0
+                d[ss] += c1[ss] + ( c2[ss] if include_revComp else 0 )
     return d
 
 getBgCounts = getBgCounts_FAST_ACCURATE_BIGMEMORY
