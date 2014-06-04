@@ -4,6 +4,7 @@ import pandas as pd
 
 from Bicluster import bicluster
 import funcs
+import utils as ut
 
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
 ## get_floc_scores_all(clusters, 9999, 9999) ## 5, 20)
@@ -20,20 +21,10 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
     scoresDF_r = pd.concat(tmp) ## This is much faster than mapreduce() above!!!
     del tmp
 
-    ## NEED TO STANDARDIZE ROWS AND COLUMNS SEPARATELY!!!   -- is this really what we want?
-    tmp_r = DataFrame( { "score" => convert(Vector{Float32}, scoresDF_r["score"] ),
-                        "score_n" => convert(Vector{Float32}, scoresDF_r["score_n"] ), 
-                        "score_m" => convert(Vector{Float32}, scoresDF_r["score_m"] ),
-                        "score_v" => convert(Vector{Float32}, scoresDF_r["score_v"] ),
-                        "score_g" => convert(Vector{Float32}, scoresDF_r["score_g"] ) } )
-    ## Weights are set here: 
-    tmp1 = get_combined_scores( sdize_vector( tmp_r["score"].data ), sdize_vector( tmp_r["score_n"].data ), 
-                               sdize_vector( tmp_r["score_m"].data ), ##sdize_vector( tmp_r["score_v"].data ),
-                               ##sdize_vector( scores_g ) )
-                               sdize_vector(tmp_r["score_v"].data),
-                               sdize_vector(tmp_r["score_g"].data))
-    tmp1 = sdize_vector( tmp1 )
-    scoresDF_r["combined"] = tmp1
+    ## STANDARDIZE ROWS AND COLUMNS SEPARATELY!!!   -- is this really what we want?
+    tmp1 = scores.get_combined_scores( scoresDF_r, iter, ratios )
+    tmp1 = ut.sdize_vector( tmp1 )
+    scoresDF_r.combined = pd.Series(tmp1)
 
     ##scoresDF_c::DataFrame = mapreduce( k->get_floc_scoresDF_cols(clusters[k], k), vcat, 1:k_clust )
     tmp = [get_floc_scoresDF_cols(clusters[k]) for k=1:k_clust]
