@@ -33,19 +33,6 @@ def re_seed_all_clusters_if_necessary( clusters, ratios ):
         clusters[k] = clusters[k].re_seed_if_necessary( clusters, ratios )
     return clusters
 
-## number of clusters each gene is in - need to compute only once over all clusters
-## all_genes provides reference of all possible gene names. May want to use ratios.index.values for this
-## TBD NOW: instead of returning a dict, return a pandas Series. No, dict is more than 10x faster
-def get_all_cluster_row_counts( clusters, all_genes ):
-    ##counts = np.array( [len(clust.rows) for clust in clusters.values()] )
-    ##return np.bincount( counts )
-    ##d = pd.Series(np.zeros(len(all_genes), int), all_genes) 
-    d = dict( zip(list(all_genes), list(np.zeros(len(all_genes), int))) )
-    for cc in clusters.values():
-        for r in cc.rows:
-            d[r] += 1
-    return d
-
 def matrix_residue( rats ):
     if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1: ## or \
             ##np.mean( rats.isnull().values ) > 0.95:
