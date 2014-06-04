@@ -5,6 +5,8 @@ import numpy as np
 from numpy import nan as NA
 from numpy import random as rand
 import pandas as pd
+##from joblib import Parallel, delayed
+from multiprocessing import Pool
 
 from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
 
@@ -27,7 +29,7 @@ class bicluster:
     scores_m = None ## vector of motif scores
     meme_out = None ## string vector - meme output
     mast_out = None ## DataFrame - parsed meme output
-    changed = False 
+    changed = None
 
     def __init__( self, k, rows, cols=None, ratios=None ):
         self.k = k
@@ -96,26 +98,32 @@ class bicluster:
             if not actually_cols:
                 all_resids[i] = funcs.matrix_residue( rats.ix[ rows2, : ] )
             else:
-                print rats.ix[ :, rows2 ].shape
                 all_resids[i] = funcs.matrix_residue( rats.ix[ :, rows2 ] )
-                print i, all_resids[i]
         return all_resids - resid
 
     def compute_var( self, ratios, var_add=0.1 ):
         rats = ratios.ix[ self.rows, self.cols ] ##.copy() ## get the bicluster's submatrix of the data
         return funcs.matrix_var( rats, var_add )
 
-    ## TBD: need to do for cols as well as genes; just like resid_deltas function
-    def compute_var_deltas( self, ratios, all_genes ):
-        is_in = np.in1d( all_genes, self.rows )
-        rows = self.rows
-        rats = ratios.ix[ :, self.cols ]
-        resid = funcs.matrix_var( ratios.ix[ rows ] )
+    def compute_var_deltas( self, ratios, all_genes, var_add=0.1, actually_cols=False ):
+        if not actually_cols:
+            is_in = np.in1d( all_genes, self.rows )
+            rows = self.rows
+            rats = ratios.ix[ :, self.cols ]
+            resid = funcs.matrix_var( rats.ix[ rows, : ], var_add )
+        else:  ## all_genes is actually all_cols==ratios.columns.values
+            is_in = np.in1d( all_genes, self.cols )
+            rows = self.cols
+            rats = ratios.ix[ self.rows, : ]
+            resid = funcs.matrix_var( rats.ix[ :, rows ], var_add )
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
-            rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
-            all_resids[i] = funcs.matrix_var( rats.ix[ rows2, ] )
+            rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
+            if not actually_cols:
+                all_resids[i] = funcs.matrix_var( rats.ix[ rows2, : ], var_add )
+            else:
+                all_resids[i] = funcs.matrix_var( rats.ix[ :, rows2 ], var_add )
         return all_resids - resid
 
     def compute_network_density( self, network ):
@@ -166,23 +174,41 @@ class bicluster:
         return score_vc
 
     ## Up-weight moves OUT if counts_g is HIGH, and moves IN if counts_g is LOW
-    ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+    ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     def get_row_count_scores( self, all_genes, counts_g ):
         is_in = np.in1d( all_genes, self.rows )
-        score_g = get_cluster_row_count_scores( counts_g )
+        score_g = bicluster.get_cluster_row_count_scores( counts_g )
         score_g = np.array( [ (+score_g[all_genes[i]] if is_in[i] else -score_g[all_genes[i]]) for i in xrange(len(is_in)) ] )
         return score_g
 
-    ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+    ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
+    ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
     def fill_all_scores(self, all_genes, ratios, string_net, counts_g, all_cols):
-        self.resid = self.compute_residue( ratios )
-        self.dens_string = self.compute_network_density( string_net )
-        self.scores_r = self.compute_residue_deltas( ratios, all_genes )
-        self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
-        self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
+        if self.changed[0]:
+            self.resid = self.compute_residue( ratios )
+            self.dens_string = self.compute_network_density( string_net )
+            self.scores_r = self.compute_residue_deltas( ratios, all_genes )
+            self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
+            self.changed[0] = False
+        if self.changed[1]:
+            self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
+            self.changed[1] = False
         return self
 
-    ## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+    def fill_all_scores_par(self):
+        global all_genes, ratios, string_net, counts_g
+        if self.changed[0]:
+            self.resid = self.compute_residue( ratios )
+            self.dens_string = self.compute_network_density( string_net )
+            self.scores_r = self.compute_residue_deltas( ratios, all_genes )
+            self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
+            self.changed[0] = False
+        if self.changed[1]:
+            self.scores_c = self.compute_residue_deltas( ratios, ratios.columns.values, actually_cols=True )
+            self.changed[1] = False
+        return self
+
+    ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     def get_floc_scoresDF_rows(self, iter, all_genes, ratios, counts_g):
         is_in = np.in1d( all_genes, self.rows )
         ## only use them if their weights are > 0 and they have been filled via fill_all_scores()
@@ -233,7 +259,7 @@ class bicluster:
         ## DONE: add rows that are preferentially in few (or no) other clusters -- 
         ## sample from get_cluster_row_counts(clusters)
         ##clust.rows = unique([clust.rows, [Distributions.sample([1:nrow(ratios.x)]) for i=1:5]]) ## add 5 random rows
-        counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
+        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
         g = np.array( counts_g.keys() )
         counts_g = np.array( counts_g.values() )
         if len(self.rows) < min_rows:
@@ -251,14 +277,44 @@ class bicluster:
             self.rows = self.rows[ np.logical_not( in1d(self.rows, tmp_rows) ) ]
         return self
 
-## THis is a static function so outside the definition of the bicluster
-## counts_g comes from counts_g = funcs.get_all_cluster_row_counts( clusters, all_genes )
-def get_cluster_row_count_scores( counts_g ):
-    thresh = params.avg_clusters_per_gene ##1.3 ## 2.0 ## 3.0 ## lower is better; coerce removing if gene is in more than 2 clusters
-    return dict( { (i,j-thresh) for i,j in counts_g.items() } )
+    @staticmethod
+    ## number of clusters each gene is in - need to compute only once over all clusters
+    ## all_genes provides reference of all possible gene names. May want to use ratios.index.values for this
+    ## TBD NOW: instead of returning a dict, return a pandas Series. No, dict is more than 10x faster
+    def get_all_cluster_row_counts( clusters, all_genes ):
+        ##counts = np.array( [len(clust.rows) for clust in clusters.values()] )
+        ##return np.bincount( counts )
+        ##d = pd.Series(np.zeros(len(all_genes), int), all_genes) 
+        d = dict( zip(list(all_genes), list(np.zeros(len(all_genes), int))) )
+        for cc in clusters.values():
+            for r in cc.rows:
+                d[r] += 1
+        return d
 
-## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
-##    each gene is added/removed from the cluster
-def get_update_scores( cluster, update_func, *args ):
-    print args
-    return update_func( cluster, *args )
+    ## THis is a static function so outside the definition of the bicluster
+    @staticmethod
+    def fill_all_cluster_scores(clusters, all_genes, ratios, string_net, all_conds):
+        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
+        for k in clusters:
+            print k
+            clusters[k].fill_all_scores(all_genes, ratios, string_net, counts_g, all_conds)
+
+    @staticmethod
+    def fill_all_cluster_scores_par(clusters):
+        global all_genes
+        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
+        pool = Pool(processes=4)              # start 4 worker processes
+        clusters = pool.map(Bicluster.bicluster.fill_all_scores_par, clusters.values())
+
+    ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
+    @staticmethod
+    def get_cluster_row_count_scores( counts_g ):
+        thresh = params.avg_clusters_per_gene ##1.3 ## 2.0 ## 3.0 ## lower is better; coerce removing if gene is in more than 2 clusters
+        return dict( { (i,j-thresh) for i,j in counts_g.items() } )
+
+    ## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
+    ##    each gene is added/removed from the cluster
+    @staticmethod
+    def get_update_scores( cluster, update_func, *args ):
+        print args
+        return update_func( cluster, *args )
