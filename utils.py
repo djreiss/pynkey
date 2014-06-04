@@ -1,5 +1,5 @@
 from numpy.random import uniform
-import numpy
+import numpy as np
 import random
  
 def slice_sampler(px, N = 1, x = None):
@@ -21,21 +21,30 @@ def slice_sampler(px, N = 1, x = None):
     From:
     http://www.adamlaiacano.com/post/14987215771/python-function-for-sampling-from-an-arbitrary-discrete
     """
-    values = numpy.zeros(N, dtype=numpy.int)
-    samples = numpy.arange(len(px))
-    px = numpy.array(px) / (1.*sum(px))
+    values = np.zeros(N, dtype=numpy.int)
+    samples = np.arange(len(px))
+    px = np.array(px) / (1.*sum(px))
     u = uniform(0, max(px))
     for n in xrange(N):
         included = px>=u
-        choice = random.sample(range(numpy.sum(included)), 1)[0]
+        choice = random.sample(range(np.sum(included)), 1)[0]
         values[n] = samples[included][choice]
         u = uniform(0, px[included][choice])
     if x:
         if len(x) == len(px):
-            x=numpy.array(x)
+            x=np.array(x)
             values = x[values]
         else:
             print "px and x are different lengths. Returning index locations for px."
     if N == 1:
         return values[0]
     return values
+
+def sdize_vector( vec ):
+    v = vec[ vec != 0 ]
+    mn = np.nanmean( v )
+    sd = np.nanstd( v )
+    return (vec - mn) / ( sd + 0.001 )
+
+def minmax( vec ):
+    return (np.nanmin(vec), np.nanmax(vec))
