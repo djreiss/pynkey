@@ -27,27 +27,27 @@ def get_score_weights(iter, ratios):
 ## TODO: use numexpr to speed up and avoid temporary array creation
 ## also use array.fill(0) to reset to zero without recreating a new array
 ## scores_DF has columns ['score_r', 'score_n', 'score_m', 'score_c', 'score_v', 'score_g']
-def get_combined_scores( scores_DF, iter, ratios ): ##r, n, m, v, g, iter, ratios )
+def get_combined_scores( scores_DF, iter, ratios ): 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = get_score_weights( iter, ratios )
-    ## Need to standardize each column first
-#     out = np.zeros_like( r ) ## assume r,n,m,v,g are all the same length
-#     tmp = np.zeros_like( r )
-#     out += weight_r * r
-#     out[ np.isnan(out) ] = 0
-#     tmp += weight_n * n
-#     tmp[ np.isnan(tmp) ] = 0
-    
-#     for i in 1:length(out) 
-#         out[i] = get_combined_score( r[i], n[i], m[i], v[i], g[i] )
-# #                 weight_r * ( isnan(r[i]) || isinf(r[i]) ? 0 : r[i] ) +  ## twice as fast to unroll it here
-# #                 weight_n * ( isnan(n[i]) || isinf(n[i]) ? 0 : n[i] ) +  ##  but it is already really fast so
-# #                 weight_m * ( isnan(m[i]) || isinf(m[i]) ? 0 : m[i] ) +  ## do it the simpler way
-# #                 weight_v * ( isnan(v[i]) || isinf(v[i]) ? 0 : v[i] ) +
-# #                 weight_g * ( isnan(g[i]) || isinf(g[i]) ? 0 : g[i] )
-#     end
-#     out
-# end
 
+    df = scores_DF
+    nr = df.shape[0]
+    ## Need to standardize each scores column first
+    out = np.zeros( nr )
+    out[ np.invert(np.isnan(df.score_r.values)) ] += weight_r * df.score_r[ np.invert(np.isnan(df.score_r.values)) ]
+    tmp = np.zeros_like( scores_DF.score_n )
+    tmp[ np.invert(np.isnan(df.score_n.values)) ] += weight_n * df.score_n[ np.invert(np.isnan(df.score_n.values)) ]
+    out += tmp
+    tmp[:] = 0
+    tmp[ np.invert(np.isnan(df.score_m.values)) ] += weight_m * df.score_m[ np.invert(np.isnan(df.score_m.values)) ]
+    out += tmp
+    tmp[:] = 0
+    tmp[ np.invert(np.isnan(df.score_v.values)) ] += weight_v * df.score_v[ np.invert(np.isnan(df.score_v.values)) ]
+    out += tmp
+    tmp[:] = 0
+    tmp[ np.invert(np.isnan(df.score_g.values)) ] += weight_g * df.score_g[ np.invert(np.isnan(df.score_g.values)) ]
+    out += tmp
+    
 # function get_combined_score( r::Float32, n::Float32, m::Float32, v::Float32, g::Float32 )
 #     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights()
 #     weight_r * ( isnan(r) || isinf(r) ? 0 : r ) + 
