@@ -223,7 +223,7 @@ class bicluster:
                               'is_in':is_in,
                               'is_row_col':np.repeat('r', len(self.scores_r)), ## CANT: move this outside the loop
                               'k':np.repeat(self.k, len(self.scores_r)),
-                              'score':score_r,
+                              'score_r':score_r,
                               'score_n':score_n,
                               'score_m':score_m,
                               'score_v':score_vr,
@@ -241,7 +241,7 @@ class bicluster:
                               'is_in':is_in,
                               'is_row_col':np.repeat('c', len(self.scores_c)), ## CANT: move this outside the loop
                               'k':np.repeat(self.k, len(self.scores_c)),
-                              'score':score_c,
+                              'score_r':score_c,
                               'score_n':NAs, ## CANT: move this outside the loop
                               'score_m':NAs,  ## CANT: move this outside the loop
                               'score_v':score_vc,
