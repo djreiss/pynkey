@@ -4,18 +4,19 @@ import datetime
 import params
 import init
 
-iter = 1
+if __name__ == '__main__':
+    iter = 1
 
-ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes = \
-    init.pynkey_init(params.organism, params.k_clust, params.ratios_file)
+    ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes = \
+        init.pynkey_init(params.organism, params.k_clust, params.ratios_file)
 
-# Save all pynkey code for safe keeping
-pynkey_code = init.load_pynkey_code()
+    # Save all pynkey code for safe keeping
+    pynkey_code = init.load_pynkey_code()
 
-startTime = datetime.datetime.now()
-print str(startTime)
+    startTime = datetime.datetime.now()
+    print str(startTime)
 
-clusters = init.init_biclusters( ratios, params.k_clust, 'kmeans+random' );
+    clusters = init.init_biclusters( ratios, params.k_clust, 'kmeans+random' );
 # if nprocs() > 1 clusters = fill_all_cluster_scores_parallel( clusters, true, true );
 # else 
 ##clusters = fill_all_cluster_scores( clusters, true, true ) ##; end
@@ -24,10 +25,10 @@ clusters = init.init_biclusters( ratios, params.k_clust, 'kmeans+random' );
 # stats_df = DataFrame()
 # run_junkey() ## Note this function can be run like this to restart from current iter
 
-print 'DONE!'
-endTime = datetime.datetime.now()
-print str(endTime)
-print str(endTime - startTime) + ' seconds since initialization'
+    print 'DONE!'
+    endTime = datetime.datetime.now()
+    print str(endTime)
+    print str(endTime - startTime) + ' seconds since initialization'
 
 # kInd = 1;
 # if organism == "Hpy" || organism == "Eco" kInd = clusters_w_func("flagell", clusters)[1]; end
