@@ -1,20 +1,24 @@
 # Use FLOC algorithm to update clusters
 
+import pandas as pd
+
+from Bicluster import bicluster
+import funcs
+
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
-#get_floc_scores_all(clusters::Dict{Int64,bicluster}) = get_floc_scores_all(clusters, 9999, 9999) ## 5, 20)
+## get_floc_scores_all(clusters, 9999, 9999) ## 5, 20)
 
 ## Get gain scores for all possible row/col moves
-function get_floc_scores_all(clusters::Dict{Int64,bicluster}, max_row::Int64=9999, max_col::Int64=9999) 
-    global k_clust
-
+def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999):
     ## First, collate move scores into a single DataFrame for stochastic sorting
     ## Use DataFrames for scores rather than matrix
 
-    counts_g::Vector{Int32} = get_cluster_row_counts( clusters ) ## Clusters per gene counts - precompute
+    bicluster.fill_all_cluster_scores(clusters, all_genes, ratios, string_net, ratios.columns.values)
 
-    #scoresDF_r::DataFrame = mapreduce( k->get_floc_scoresDF_rows(clusters[k], k), vcat, 1:k_clust )
-    tmp::Vector{DataFrame} = [get_floc_scoresDF_rows(clusters[k], counts_g) for k=1:k_clust]
-    scoresDF_r::DataFrame = rbind(tmp) ## This is much faster than mapreduce() above!!!
+    counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
+    tmp = [ clusters[k].get_floc_scoresDF_rows(iter, all_genes, ratios, counts_g) for k in clusters ]
+    scoresDF_r = pd.concat(tmp) ## This is much faster than mapreduce() above!!!
+    del tmp
 
     ## NEED TO STANDARDIZE ROWS AND COLUMNS SEPARATELY!!!   -- is this really what we want?
     tmp_r = DataFrame( { "score" => convert(Vector{Float32}, scoresDF_r["score"] ),
