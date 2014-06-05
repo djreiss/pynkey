@@ -14,10 +14,6 @@ import funcs
 import params
 
 ##import multiprocessing as mp
-## see: http://matthewrocklin.com/blog/work/2013/12/05/Parallelism-and-Serialization/
-## and https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-pythons-multiprocessing-pool-ma
-## and https://stackoverflow.com/questions/19984152/what-can-multiprocessing-and-dill-do-together
-##import pathos.multiprocessing as mp
 
 class bicluster:
     k = None    ## cluster index
@@ -62,7 +58,8 @@ class bicluster:
             '   meme-p: %f' % self.meanp_meme + '\n' + \
             '   string: %f' % self.dens_string + '\n' + \
             '   rows: %s' % str(self.rows) + '\n' + \
-            '   cols: %s' % str(self.cols)
+            '   cols: %s' % str(self.cols) + '\n' + \
+            '   changed: %s' % str(self.changed)
     
     def copy( self, deep=True ):
         out = copy.deepcopy(self) if deep else copy.copy(self)
@@ -188,6 +185,7 @@ class bicluster:
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
     def fill_all_scores(self, all_genes, ratios, string_net, counts_g, all_cols):
+        print self.k; print self.changed
         if self.changed[0]:
             self.resid = self.compute_residue( ratios )
             self.dens_string = self.compute_network_density( string_net )

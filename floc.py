@@ -2,6 +2,11 @@
 
 import pandas as pd
 
+import globals
+import utils as ut
+import scores
+from Bicluster import bicluster
+
 ## Get gain scores for all possible row/col moves
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
 def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999):  ## 5, 20)
@@ -9,10 +14,10 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
     ## Use DataFrames for scores rather than matrix
 
     ##bicluster.fill_all_cluster_scores(clusters, all_genes, ratios, string_net, ratios.columns.values)
-    fill_all_cluster_scores_par(clusters, threads=15)
+    clusters = globals.fill_all_cluster_scores_par(clusters, threads=15)
 
-    counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
-    tmp = [ clusters[k].get_floc_scoresDF_rows(iter, all_genes, ratios, counts_g) for k in clusters ]
+    globals.counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
+    tmp = [ clusters[k].get_floc_scoresDF_rows(iter, all_genes, ratios, globals.counts_g) for k in clusters ]
     scoresDF_r = pd.concat(tmp) ## This is much faster than mapreduce() above!!!
     del tmp
 
@@ -21,26 +26,18 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
     tmp1 = ut.sdize_vector( tmp1 )
     scoresDF_r['combined'] = pd.Series(tmp1)
 
-#     ##scoresDF_c::DataFrame = mapreduce( k->get_floc_scoresDF_cols(clusters[k], k), vcat, 1:k_clust )
-#     tmp = [get_floc_scoresDF_cols(clusters[k]) for k=1:k_clust]
-#     scoresDF_c::DataFrame = rbind(tmp) ## This is much faster than mapreduce() above!!!
-#     tmp_na::Vector{Float32} = float32( fill(NA, size(scoresDF_c,1)) )
+    tmp = [ clusters[k].get_floc_scoresDF_cols(iter, ratios) for k in clusters ]
+    scoresDF_c = pd.concat(tmp) ## This is much faster than mapreduce()
+    del tmp
 
-#     tmp_c = DataFrame( { "score" => convert(Vector{Float32}, scoresDF_c["score"] ),
-#                         "score_n" => tmp_na,
-#                         "score_m" => tmp_na,
-#                         "score_v" => convert(Vector{Float32}, scoresDF_c["score_v"] ),
-#                         "score_g" => tmp_na } )
-#     ## Weights are set here:
-#     tmp1 = get_combined_scores( sdize_vector( tmp_c["score"].data ), tmp_na, ##tmp_c["score_n"].data, 
-#                                tmp_na, ##tmp_c["score_m"].data, ##sdize_vector( tmp_c["score_v"].data ), 
-#                                sdize_vector(tmp_c["score_v"].data), tmp_na ) ##tmp_c["score_g"].data )
-#     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights() ## get weight_c to up-weight cols. vs. rows, if desired
-#     tmp1 = sdize_vector( tmp1 ) .* weight_c
-#     scoresDF_c["combined"] = tmp1
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
 
-#     if max_row <= maximum(scoresDF_r["row_col_ind"])
-#         tmp_r = groupby( scoresDF_r, "k" )
+    tmp1 = scores.get_combined_scores( scoresDF_c, iter, ratios )
+    tmp1 = ut.sdize_vector( tmp1 ) * weight_c
+    scoresDF_c['combined'] = pd.Series(tmp1)
+
+    if max_row < 9999:
+        tmp_r = scoresDF_r.groupby( 'k' )
 #         shrunk_r = Array(DataFrame, length(tmp_r))
 #         for i in 1:length(tmp_r) 
 #             ord = sortperm( tmp_r[i]["combined"] )[1:max_row]
@@ -49,10 +46,12 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
 #         scoresDF_r = rbind( shrunk_r )
 #     end
 
-#     if max_row <= maximum(scoresDF_r["row_col_ind"])
-#         tmp_c = groupby( scoresDF_c, "k" )
-#         shrunk_c = Array(DataFrame, length(tmp_c))
-#         for i in 1:length(tmp_c) 
+    if max_col < 9999:
+        tmp_c = scoresDF_c.groupby( 'k' )
+        tmp_c = dict(list(tmp_c))
+        shrunk_c = [pd.DataFrame() for i in range(len(tmp_c))]
+        for i in range(len(tmp_c)):
+            print i
 #             ord = sortperm( tmp_c[i]["combined"] )[1:max_col]
 #             shrunk_c[i] = tmp_c[i][ ord, : ]
 #         end
