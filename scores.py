@@ -47,7 +47,8 @@ def get_combined_scores( scores_DF, iter, ratios ):
     tmp[:] = 0
     tmp[ np.invert(np.isnan(df.score_g.values)) ] += weight_g * df.score_g[ np.invert(np.isnan(df.score_g.values)) ]
     out += tmp
-    
+    return out
+
 # function get_combined_score( r::Float32, n::Float32, m::Float32, v::Float32, g::Float32 )
 #     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights()
 #     weight_r * ( isnan(r) || isinf(r) ? 0 : r ) + 

@@ -1,8 +1,37 @@
 ## MAIN PROGRAM
 import datetime
 
-import params
+import pandas as pd
+
 import init
+import params
+from Bicluster import bicluster
+import funcs
+import utils as ut
+import scores
+import floc
+
+def run_pynkey(iter):
+    global organism, n_iters, clusters, all_genes, ratios, string_net, stats_df
+
+#     n_no_improvements = 0
+#     for i=iter:n_iters
+#         iter = i
+#         (clusters, n_improvements, stats_tmp) = 
+    floc.do_floc( clusters, iter, all_genes, ratios, string_net )
+#         println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
+#         stats_df = rbind( stats_df, stats_tmp )
+#         write_table( "output/$(organism)_stats.tsv", stats_df )
+#         if isfile( "DO_SAVE" )  ## save cluster info for temporary examination of clusters (via Rscripts/clusters.R)
+#             warn( "Writing out clusters to output/$(organism)_clusters.tsv" )
+#             clusters_tab = clusters_to_dataFrame(clusters);
+#             write_table("output/$(organism)_clusters.tsv", clusters_tab)
+#         end
+#         if n_improvements <= 0 n_no_improvements += 1 else n_no_improvements = 0; end
+#         if iter > n_iters/2 && n_no_improvements > 5 break; end
+#     end
+    return iter
+# end
 
 if __name__ == '__main__':
     iter = 1
@@ -11,19 +40,31 @@ if __name__ == '__main__':
         init.pynkey_init(params.organism, params.k_clust, params.ratios_file)
 
     # Save all pynkey code for safe keeping
-    pynkey_code = init.load_pynkey_code()
+    pynkey_code = {}
+    try:
+        pynkey_code = init.load_pynkey_code()
+    except:
+        print 'Must have "import"ed this module rather than run from main.py.'
 
     startTime = datetime.datetime.now()
     print str(startTime)
 
     clusters = init.init_biclusters( ratios, params.k_clust, 'kmeans+random' );
-# if nprocs() > 1 clusters = fill_all_cluster_scores_parallel( clusters, true, true );
-# else 
-##clusters = fill_all_cluster_scores( clusters, true, true ) ##; end
-# println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
+        
+    counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
 
-# stats_df = DataFrame()
-# run_junkey() ## Note this function can be run like this to restart from current iter
+    ##clusters = bicluster.fill_all_cluster_scores_par( clusters, all_genes, ratios, string_net, 
+    ##                                 ratios.columns.values, 4 )
+    clusters = bicluster.fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )
+
+    print 'DONE WITH INITIALIZATION!'
+    endTime = datetime.datetime.now()
+    print str(endTime)
+    print str(endTime - startTime) + ' seconds since initialization'
+        
+    stats_df = pd.DataFrame()
+
+    ##iter = run_pynkey(iter) ## Note this function can be run like this to restart from current iter
 
     print 'DONE!'
     endTime = datetime.datetime.now()

@@ -1,12 +1,11 @@
 import sys
 import copy
+from multiprocessing import Pool
 
 import numpy as np
 from numpy import nan as NA
 from numpy import random as rand
 import pandas as pd
-##from joblib import Parallel, delayed
-from multiprocessing import Pool
 
 from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
 
@@ -153,7 +152,7 @@ class bicluster:
     ## DONE: a little less heuristic?
     ## DONE? less "sharply-peaked" at 15? Perhaps make it "level out" between say 8 and 23
     ## DONE: plot this and see -- I think it DECREASES for really big volumes, want to fix this
-    def get_volume_row_scores( self, all_genes ): ##, is_in_r )
+    def get_volume_row_scores( self, all_genes ):
         thresh = params.avg_genes_per_cluster
         is_in = np.in1d( all_genes, self.rows )
         lr = len(self.rows)
@@ -166,7 +165,7 @@ class bicluster:
 
     ## Just up-weight moves that add columns (to prevent shrinkage)
     ## NOTE that as is, the weighting decreases for really high #cols... is this what we want?
-    def get_volume_col_scores( self, all_cols ): ##, is_in_c )
+    def get_volume_col_scores( self, all_cols ):
         is_in = np.in1d( all_cols, self.cols )
         lc = len(self.cols)
         score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
@@ -192,19 +191,6 @@ class bicluster:
             self.changed[0] = False
         if self.changed[1]:
             self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
-            self.changed[1] = False
-        return self
-
-    def fill_all_scores_par(self):
-        global all_genes, ratios, string_net, counts_g
-        if self.changed[0]:
-            self.resid = self.compute_residue( ratios )
-            self.dens_string = self.compute_network_density( string_net )
-            self.scores_r = self.compute_residue_deltas( ratios, all_genes )
-            self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
-            self.changed[0] = False
-        if self.changed[1]:
-            self.scores_c = self.compute_residue_deltas( ratios, ratios.columns.values, actually_cols=True )
             self.changed[1] = False
         return self
 
@@ -294,17 +280,10 @@ class bicluster:
     ## THis is a static function so outside the definition of the bicluster
     @staticmethod
     def fill_all_cluster_scores(clusters, all_genes, ratios, string_net, all_conds):
-        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
+        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
         for k in clusters:
             print k
-            clusters[k].fill_all_scores(all_genes, ratios, string_net, counts_g, all_conds)
-
-    @staticmethod
-    def fill_all_cluster_scores_par(clusters):
-        global all_genes
-        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
-        pool = Pool(processes=4)              # start 4 worker processes
-        clusters = pool.map(Bicluster.bicluster.fill_all_scores_par, clusters.values())
+            clusters[k].fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     @staticmethod
@@ -318,3 +297,20 @@ class bicluster:
     def get_update_scores( cluster, update_func, *args ):
         print args
         return update_func( cluster, *args )
+
+##################################
+## Note this works from ipython shell, but NOT as called in floc.get_floc_scores_all()
+    @staticmethod
+    def fill_all_cluster_scores_par(clusters, all_genes, ratios, string_net, all_conds, counts_g, threads=4):
+        pool = Pool(processes=threads)              # start 4 worker processes
+        ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
+        clusters = pool.map(bicluster.fill_all_scores_par, clusters.keys() )
+        pool.terminate()
+        return clusters
+
+    @staticmethod
+    def fill_all_scores_par(k):
+        print k
+        clust = clusters[k]
+        clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+        return clust

@@ -2,26 +2,6 @@ import warnings
 
 import numpy as np
 
-# function run_junkey()
-#     global organism, iter, n_iters, clusters, stats_df
-
-#     n_no_improvements = 0
-#     for i=iter:n_iters
-#         iter = i
-#         (clusters, n_improvements, stats_tmp) = do_floc( clusters );
-#         println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
-#         stats_df = rbind( stats_df, stats_tmp )
-#         write_table( "output/$(organism)_stats.tsv", stats_df )
-#         if isfile( "DO_SAVE" )  ## save cluster info for temporary examination of clusters (via Rscripts/clusters.R)
-#             warn( "Writing out clusters to output/$(organism)_clusters.tsv" )
-#             clusters_tab = clusters_to_dataFrame(clusters);
-#             write_table("output/$(organism)_clusters.tsv", clusters_tab)
-#         end
-#         if n_improvements <= 0 n_no_improvements += 1 else n_no_improvements = 0; end
-#         if iter > n_iters/2 && n_no_improvements > 5 break; end
-#     end
-# end
-
 def copy_clusters( clusters, deep=True ):
     new_clusters = {} ## make a copy for updating
     for k in clusters.keys():
