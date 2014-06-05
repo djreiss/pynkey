@@ -13,6 +13,12 @@ import scores
 import funcs
 import params
 
+##import multiprocessing as mp
+## see: http://matthewrocklin.com/blog/work/2013/12/05/Parallelism-and-Serialization/
+## and https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-pythons-multiprocessing-pool-ma
+## and https://stackoverflow.com/questions/19984152/what-can-multiprocessing-and-dill-do-together
+##import pathos.multiprocessing as mp
+
 class bicluster:
     k = None    ## cluster index
     rows = None ## vector of gene names
@@ -283,6 +289,7 @@ class bicluster:
         for k in clusters:
             print k
             clusters[k].fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+        return clusters
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     @staticmethod
@@ -299,20 +306,20 @@ class bicluster:
 
 ##################################
 ## Note this works from ipython shell, but NOT as called in floc.get_floc_scores_all()
-    ##import multiprocessing as mp
-    import pathos.multiprocessing as mp
+    # @staticmethod
+    # def fill_all_cluster_scores_par( threads=4 ): ##clusters, all_genes, ratios, string_net, all_conds, counts_g, threads=4):
+    #     global clusters, all_genes, ratios, string_net, counts_g
+    #     pool = mp.Pool(processes=threads)              # start 4 worker processes
+    #     ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
+    #     clusters = pool.map(bicluster.fill_all_scores_par, clusters.keys())
+    #     pool.terminate()
+    #     clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
+    #     return clusters
 
-    @staticmethod
-    def fill_all_cluster_scores_par(clusters, all_genes, ratios, string_net, all_conds, counts_g, threads=4):
-        pool = mp.Pool(processes=threads)              # start 4 worker processes
-        ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
-        clusters = pool.map(bicluster.fill_all_scores_par, clusters.keys() )
-        pool.terminate()
-        return clusters
-
-    @staticmethod
-    def fill_all_scores_par(k):
-        print k
-        clust = clusters[k]
-        clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
-        return clust
+    # @staticmethod
+    # def fill_all_scores_par( k ):
+    #     global clusters, all_genes, ratios, string_net, counts_g, ratios
+    #     print k
+    #     clust = clusters[k]
+    #     clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+    #     return clust

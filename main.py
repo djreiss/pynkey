@@ -33,6 +33,52 @@ def run_pynkey(iter):
     return iter
 # end
 
+##import multiprocessing as mp
+## see: http://matthewrocklin.com/blog/work/2013/12/05/Parallelism-and-Serialization/
+## and https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-pythons-multiprocessing-pool-ma
+## and https://stackoverflow.com/questions/19984152/what-can-multiprocessing-and-dill-do-together
+import pathos.multiprocessing as mp
+
+## Note these par funcs need to be in main.py (and hence global) to have global access to all
+##    data -- I don't know how to change this right now.
+
+def do_something_par( items, func, threads=4 ):
+    pool = mp.Pool(processes=threads)              # start 4 worker processes
+    ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
+    print len(items); print(type(items))
+    out = pool.map(func, items)
+    pool.terminate()
+    return out
+
+def fill_all_cluster_scores_par( clusters, threads=4 ):
+    clusters = do_something_par( clusters, fill_all_scores_par )
+    clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
+    return clusters
+
+## Keep everything global so it doesn't need to be sent to each child.
+def fill_all_scores_par( k ):
+    global clusters, all_genes, ratios, string_net, counts_g
+    clust = clusters[k]
+    print clust.k
+    clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+    return clust
+
+# def fill_all_cluster_scores_par( clusters, threads=4 ):
+#     pool = mp.Pool(processes=threads)              # start 4 worker processes
+#     ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
+#     clusters = pool.map(fill_all_scores_par, clusters.keys())
+#     pool.terminate()
+#     clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
+#     return clusters
+
+## Keep everything global so it doesn't need to be sent to each child.
+# def fill_all_scores_par( k ):
+#     global clusters, all_genes, ratios, string_net, counts_g
+#     print k
+#     clust = clusters[k]
+#     clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+#     return clust
+
 if __name__ == '__main__':
     iter = 1
 
@@ -53,10 +99,9 @@ if __name__ == '__main__':
         
     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
 
-    clusters = bicluster.fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )
+    #clusters = bicluster.fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )
     
-    clusters = bicluster.fill_all_cluster_scores_par( clusters, all_genes, ratios, string_net, 
-                                                      ratios.columns.values, counts_g, 4 )
+    clusters = fill_all_cluster_scores_par(clusters, threads=15)
 
     print 'DONE WITH INITIALIZATION!'
     endTime = datetime.datetime.now()
