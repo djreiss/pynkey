@@ -53,9 +53,10 @@ if __name__ == '__main__':
         
     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
 
-    ##clusters = bicluster.fill_all_cluster_scores_par( clusters, all_genes, ratios, string_net, 
-    ##                                 ratios.columns.values, 4 )
     clusters = bicluster.fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )
+    
+    clusters = bicluster.fill_all_cluster_scores_par( clusters, all_genes, ratios, string_net, 
+                                                      ratios.columns.values, counts_g, 4 )
 
     print 'DONE WITH INITIALIZATION!'
     endTime = datetime.datetime.now()

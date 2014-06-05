@@ -1,6 +1,5 @@
 import sys
 import copy
-from multiprocessing import Pool
 
 import numpy as np
 from numpy import nan as NA
@@ -300,9 +299,12 @@ class bicluster:
 
 ##################################
 ## Note this works from ipython shell, but NOT as called in floc.get_floc_scores_all()
+    ##import multiprocessing as mp
+    import pathos.multiprocessing as mp
+
     @staticmethod
     def fill_all_cluster_scores_par(clusters, all_genes, ratios, string_net, all_conds, counts_g, threads=4):
-        pool = Pool(processes=threads)              # start 4 worker processes
+        pool = mp.Pool(processes=threads)              # start 4 worker processes
         ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
         clusters = pool.map(bicluster.fill_all_scores_par, clusters.keys() )
         pool.terminate()
