@@ -31,11 +31,10 @@ def run_pynkey(iter):
 # end
 
 if __name__ == '__main__':
-    ##from globals import *
-    import globals
+    import globals ## this does the initialization
 
     #clusters = bicluster.fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
-    globals.clusters = globals.fill_all_cluster_scores_par(globals.clusters, threads=15)
+    globals.clusters = globals.fill_all_cluster_scores_par(globals.clusters, threads=10)
     # NOTE: run_pynkey() which calls floc.get_floc_scores_all() fills all the cluster scores at the beginning
     
     globals.iter = run_pynkey(globals.iter) ## Note this function can be run like this to restart from current iter

@@ -185,7 +185,7 @@ class bicluster:
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
     def fill_all_scores(self, all_genes, ratios, string_net, counts_g, all_cols):
-        print self.k; print self.changed
+        print self.k ##; print self.changed
         if self.changed[0]:
             self.resid = self.compute_residue( ratios )
             self.dens_string = self.compute_network_density( string_net )
