@@ -1,6 +1,7 @@
 # Use FLOC algorithm to update clusters
 
 import pandas as pd
+from numpy import random as rnd
 
 import utils as ut
 import scores
@@ -31,7 +32,7 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
     scoresDF_c = pd.concat(tmp) ## This is much faster than mapreduce()
     del tmp
 
-    ##weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
 
     tmp1 = scores.get_combined_scores( scoresDF_c, iter, ratios )
     tmp1 = ut.sdize_vector( tmp1 ) * weight_c
@@ -39,73 +40,56 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
 
     if max_row < 9999:
         tmp_r = scoresDF_r.groupby( 'k' )
-#         shrunk_r = Array(DataFrame, length(tmp_r))
-#         for i in 1:length(tmp_r) 
-#             ord = sortperm( tmp_r[i]["combined"] )[1:max_row]
-#             shrunk_r[i] = tmp_r[i][ ord, : ]
-#         end
-#         scoresDF_r = rbind( shrunk_r )
-#     end
+        tmp_r = dict(list(tmp_r))
+        shrunk_r = [pd.DataFrame() for i in range(len(tmp_r))]
+        for i in range(len(tmp_r)):
+            shrunk_r[i] = tmp_r[i].sort( 'combined' )[ 0:max_row ]
+        scoresDF_r = pd.concat( shrunk_r )
 
     if max_col < 9999:
         tmp_c = scoresDF_c.groupby( 'k' )
         tmp_c = dict(list(tmp_c))
         shrunk_c = [pd.DataFrame() for i in range(len(tmp_c))]
         for i in range(len(tmp_c)):
-            print i
-#             ord = sortperm( tmp_c[i]["combined"] )[1:max_col]
-#             shrunk_c[i] = tmp_c[i][ ord, : ]
-#         end
-#         scoresDF_c = rbind( shrunk_c )
-#     end
+            shrunk_c[i] = tmp_c[i].sort( 'combined' )[ 0:max_col ]
+        scoresDF_c = pd.concat( shrunk_c )
 
-    scores = pd.concat([scoresDF_r, scoresDF_c])
-    return scores
+    all_scores = pd.concat([scoresDF_r, scoresDF_c])
+    return all_scores
 
 # ## Instead of scores for ALL possible moves, make a matrix of n_best best scores for each row/col
-# function get_floc_scores_best( scores::DataFrame, n_best_row::Int64=3, n_best_col::Int64=3 )
-#     dfs_r::Vector{AbstractDataFrame} = [ sub( scores, :(is_row_col .== 'r') ) ]
-#     if n_best_row < 9999  ## Now uses the nice functions in DataFrame like with() or group() or some such
-#         tmp = groupby( dfs_r[1], "row_col_ind" ) ## Cool!
-#         dfs_r = Array(AbstractDataFrame, length(tmp))
-#         for r in 1:length(tmp)
-#             tmp2 = tmp[r] ##sub( tmp[r], :(row_col_ind .== row_col_ind[1]) )
-#             if n_best_row == 1 ord = findmin( tmp2["combined"] )[2]
-#             elseif n_best_row >= size(tmp2, 1) ord = 1:size(tmp2, 1)
-#             else ord = sortperm( tmp2["combined"] )[ 1:n_best_row ]
-#             end
-#             dfs_r[r] = tmp2[ ord, : ]
-#         end
-#     end
+def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
+    df_r = all_scores[ all_scores.is_row_col == 'r' ]
+    if n_best_row < 9999:
+        tmp = df_r.groupby( 'row_col' ) ## Cool!
+        dfs_r = {i:pd.DataFrame() for i,df in tmp}
+        for r,tmp2 in tmp:
+            tmp2a = tmp2.sort( 'combined' )[ 0:n_best_row ]
+            dfs_r[r] = tmp2a
 
-#     dfs_c::Vector{AbstractDataFrame} = [ sub( scores, :(is_row_col .== 'c') ) ]
-#     if n_best_col < 9999  ## Now uses the nice functions in DataFrame like with() or group() or some such
-#         tmp = groupby( dfs_c[1], "row_col_ind" ) ## Cool!
-#         dfs_c = Array(AbstractDataFrame, length(tmp))
-#         for c in 1:length(tmp)
-#             tmp2 = tmp[c] ##sub( tmp[c], :(row_col_ind .== $c) )
-#             if n_best_col == 1 ord = findmin( tmp2["combined"] )[2]
-#             elseif n_best_col >= size(tmp2, 1) ord = 1:size(tmp2, 1)
-#             else ord = sortperm( tmp2["combined"] )[ 1:n_best_col ]
-#             end
-#             dfs_c[c] = tmp2[ ord,: ]
-#         end
-#     end
-#     scores2 = rbind( rbind( dfs_r ), rbind( dfs_c ) )
-#     scores2
-# end
+    df_c = all_scores[ all_scores.is_row_col == 'c' ]
+    if n_best_col < 9999:
+        tmp = df_c.groupby( 'row_col' ) ## Cool!
+        dfs_c = {i:pd.DataFrame() for i,df in tmp}
+        for r,tmp2 in tmp:
+            tmp2a = tmp2.sort( 'combined' )[ 0:n_best_col ]
+            dfs_c[r] = tmp2a
 
-# #rnd_bubblesort( scores::Vector{Float32} ) = rnd_bubblesort( scores, nothing )
+    scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ] )
+    return scores_out
 
-# function rnd_bubblesort( scores::Vector{Float32}, Nrepeats=nothing )
-#     const lsc = length(scores)
-#     if Nrepeats == nothing Nrepeats = lsc * 2; end
-#     ord::Vector{Int32} = shuffle!( [1:lsc] ) ## start w/ random order
-#     tmp = range(scores); const R=2.0 * ( tmp[2]-tmp[1] ) ## Denominator of value to compute prob. from
-#     the_max::Float32 = tmp[2]
-#     const n = lsc - 1
-#     n_switches::Int = 0
-#     o1::Int32 = 0; o2::Int32 = 0; g1::Float32 = 0.; g2::Float32 = 0.; p::Float32 = 0.
+def rnd_bubblesort( scores, Nrepeats=None ):
+    lsc = len(scores)
+    if Nrepeats is None:
+        Nrepeats = lsc * 2
+    ord = arange(lsc)
+    rnd.shuffle( ord ) ## start w/ random order
+    tmp = ut.minmax(scores.values)
+    R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
+    the_max = tmp[1]
+    n = lsc - 1
+    n_switches = 0
+    o1 = o2 = g1 = g2 = p = 0.
 #     for i=1:Nrepeats
 #         n_switches = 0
 #         for j=1:n
@@ -131,15 +115,15 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
 def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
 
-    scores = get_floc_scores_all(clusters, iter, all_genes, ratios, string_net)
+    scores_all = get_floc_scores_all(clusters, iter, all_genes, ratios, string_net)
 
-#     scores2::DataFrame = get_floc_scores_best(scores);
+    scores_all2 = get_floc_scores_best(scores_all)
 
-#     ## For FLOC, identify the BEST score for each row/column, then bubble sort those to get the order in
-#     ##    which to perform the moves.
-#     ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
-#     ##  Need to just use the BEST score for each row/col and then bubblesort these.
-#     ord::Vector{Int32} = rnd_bubblesort(convert(Vector{Float32}, scores2["combined"])) ##, n_sort_iter) 
+    ## For FLOC, identify the BEST score for each row/column, then bubble sort those to get the order in
+    ##    which to perform the moves.
+    ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
+    ##  Need to just use the BEST score for each row/col and then bubblesort these.
+    ord = rnd_bubblesort( scores_all2['combined'] ) ##, n_sort_iter) 
 #     println( head(scores2[ord,:]), "\n", tail(scores2[ord,:]) )
 
 #     new_clusters = saved_clusters = copy_clusters( clusters, true, false ); ## make a copy for updating
