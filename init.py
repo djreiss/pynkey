@@ -14,7 +14,7 @@ import sequence as seq
 import params
 from Bicluster import bicluster
 
-print 'init'
+print 'importing init'
 
 def pynkey_init(organism, k_clust, ratios_file):
     print organism
