@@ -17,7 +17,7 @@ from Bio.Seq import reverse_complement ## rev_comp for a string
 
 import params
 
-print 'sequence'
+print 'importing sequence'
 
 def get_genome_seq( genome_seqs, scaffoldId ):
     sid = str(scaffoldId)

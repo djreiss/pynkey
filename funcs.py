@@ -2,6 +2,8 @@ import warnings
 
 import numpy as np
 
+print 'importing funcs'
+
 def copy_clusters( clusters, deep=True ):
     new_clusters = {} ## make a copy for updating
     for k in clusters.keys():

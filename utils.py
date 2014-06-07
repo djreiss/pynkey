@@ -1,6 +1,24 @@
 from numpy.random import uniform
 import numpy as np
 import random
+
+import multiprocessing as mp
+## see: http://matthewrocklin.com/blog/work/2013/12/05/Parallelism-and-Serialization/
+## and https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-pythons-multiprocessing-pool-ma
+## and https://stackoverflow.com/questions/19984152/what-can-multiprocessing-and-dill-do-together
+##import pathos.multiprocessing as mp
+
+## Note these par funcs need to be in globals.py (and hence global) to have global access to all
+##    data -- I don't know how to change this right now.
+
+print 'importing utils'
+
+def do_something_par( items, func, threads=None ): # None ensures that it makes as many threads as avail. in computer
+    pool = mp.Pool(processes=threads)              # start 4 worker processes
+    ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
+    out = pool.map(func, items)
+    pool.terminate()
+    return out
  
 def slice_sampler(px, N = 1, x = None):
     """

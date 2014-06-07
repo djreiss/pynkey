@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 
-print 'params'
+print 'importing params'
 
 #def undefined(var):
 #    var not in vars() and var not in globals()
