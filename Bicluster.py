@@ -8,12 +8,13 @@ import pandas as pd
 
 from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
 
-from utils import slice_sampler
 import scores
 import funcs
 import params
+import globals
+from utils import slice_sampler, do_something_par
 
-##import multiprocessing as mp
+print 'importing Bicluster'
 
 class bicluster:
     k = None    ## cluster index
@@ -185,7 +186,9 @@ class bicluster:
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
     def fill_all_scores(self, all_genes, ratios, string_net, counts_g, all_cols):
-        print self.k ##; print self.changed
+        if np.all(np.invert(self.changed)):
+            return self
+        print self.k, self.changed
         if self.changed[0]:
             self.resid = self.compute_residue( ratios )
             self.dens_string = self.compute_network_density( string_net )
@@ -321,3 +324,16 @@ class bicluster:
     #     clust = clusters[k]
     #     clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
     #     return clust
+
+def fill_all_cluster_scores_par( clusters, threads=None ):
+    ## Clusters per gene counts - precompute:
+    globals.counts_g = bicluster.get_all_cluster_row_counts( clusters, globals.all_genes )
+    clusters = do_something_par( clusters.values(), fill_all_scores_par, threads=threads )
+    clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
+    return clusters
+
+## Keep everything global so it doesn't need to be sent to each child.
+def fill_all_scores_par( clust ):
+    clust.fill_all_scores(globals.all_genes, globals.ratios, globals.string_net, globals.counts_g, 
+                          globals.ratios.columns.values)
+    return clust

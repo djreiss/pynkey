@@ -3,11 +3,6 @@ import datetime
 
 import pandas as pd
 
-import init
-import params
-from Bicluster import bicluster
-import floc
-
 def run_pynkey(iter):
     ##global organism, n_iters, clusters, all_genes, ratios, string_net, stats_df
 
@@ -32,11 +27,14 @@ def run_pynkey(iter):
 
 if __name__ == '__main__':
     import globals ## this does the initialization
+    from Bicluster import fill_all_cluster_scores_par
+    import floc
 
-    #clusters = bicluster.fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
-    globals.clusters = globals.fill_all_cluster_scores_par(globals.clusters, threads=10)
-    # NOTE: run_pynkey() which calls floc.get_floc_scores_all() fills all the cluster scores at the beginning
-    
+    #clusters = fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
+    ## weird - if I move this to globals.py, then it gets locked up.
+    globals.clusters = fill_all_cluster_scores_par(globals.clusters)
+
+    # NOTE: run_pynkey() which calls floc.get_floc_scores_all() fills all the cluster scores at the beginning    
     globals.iter = run_pynkey(globals.iter) ## Note this function can be run like this to restart from current iter
 
     print 'DONE!'
