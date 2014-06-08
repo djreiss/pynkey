@@ -1,7 +1,9 @@
 # Use FLOC algorithm to update clusters
 
 import pandas as pd
+import numpy as np
 from numpy import random as rnd
+from numpy import nan as NA
 
 import utils as ut
 import scores
@@ -82,33 +84,74 @@ def rnd_bubblesort( scores, Nrepeats=None ):
     lsc = len(scores)
     if Nrepeats is None:
         Nrepeats = lsc * 2
-    ord = arange(lsc)
-    rnd.shuffle( ord ) ## start w/ random order
+    ord = np.arange(lsc)
+    rnd.shuffle(ord) ## start w/ random order
     tmp = ut.minmax(scores.values)
     R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
     the_max = tmp[1]
     n = lsc - 1
+    ## TBD: this double loop can be sped up with weave!!!
     n_switches = 0
-    o1 = o2 = g1 = g2 = p = 0.
-#     for i=1:Nrepeats
-#         n_switches = 0
-#         for j=1:n
-#             o1 = ord[j]
-#             o2 = ord[j+1]
-#             g1 = scores[o1]; if g1 != g1 g1 = the_max; end ## replace NaN with maximum score
-#             g2 = scores[o2]; if g2 != g2 g2 = the_max; end ## replace NaN with maximum score
-#             if g1 == g2 && g2 == the_max continue; end
-#             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
-#             if rand() < p ## switch???
-#                 ord[j] = o2
-#                 ord[j+1] = o1
-#                 n_switches += 1
-#             end
-#         end
-#         if i % 10000 == 1 println(i," ",n_switches," ",lsc*2); end
-#     end
-#     ord
-# end
+    for i in xrange(Nrepeats):
+        o1 = o2 = g1 = g2 = p = 0.
+        rnds = rnd.rand(n)
+        for j in xrange(n):
+            o1 = ord[j]
+            o2 = ord[j+1]
+            g1 = scores[o1]
+            if g1 is NA: 
+                g1 = the_max ## replace NaN with maximum score
+            g2 = scores[o2]
+            if g2 is NA:
+                g2 = the_max ## replace NaN with maximum score
+            if g1 == g2 and g2 == the_max:
+                continue
+            p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
+            if rnds[j] < p: ##rnd.rand() < p: ## switch???
+                print i,j,n,Nrepeats
+                ord[j] = o2
+                ord[j+1] = o1
+                n_switches += 1
+        if i % 10000 == 1:
+            print i, n_switches, Nrepeats
+    return ord
+
+import scipy.weave
+
+def rnd_bubblesort2( scores, Nrepeats=None ):
+    lsc = len(scores)
+    if Nrepeats is None:
+        Nrepeats = lsc * 2
+    ord = np.arange(lsc)
+    rnd.shuffle(ord) ## start w/ random order
+    tmp = ut.minmax(scores.values)
+    R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
+    the_max = tmp[1]
+    n = lsc - 1
+    sc = scores.values.copy()
+    sc[ np.isnan(sc) ] = the_max ## replace NaN with maximum score
+    switchesN = np.array([0]) ## count the number of switches. Not really necessary
+    for i in xrange(Nrepeats):
+        rnds = rnd.rand(n)
+        code = \
+"""
+  for ( int j=0; j<n; j++ ) {
+      int o1 = ord(j), o2 = ord(j+1);
+      double g1 = sc(o1), g2 = sc(o2);
+      if ( g1 == g2 && g2 == (double)the_max ) continue;
+      double p = 0.5 + ( g1 - g2 ) / (double)R; // compute prob of switching
+      if ( rnds(j) < p ) { // switch???
+          ord(j) = o2;
+          ord(j+1) = o1;
+          switchesN(0) ++;
+      }
+    }
+ """
+        scipy.weave.inline(code,['ord','n','sc','R','switchesN','rnds','the_max'],
+                           type_converters=scipy.weave.converters.blitz)
+        if i % 1000 == 1:
+            print i, switchesN[0], Nrepeats
+    return ord
 
 # #floc_update(clusters) = floc_update(clusters, 25)
 
@@ -123,8 +166,8 @@ def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvemen
     ##    which to perform the moves.
     ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
     ##  Need to just use the BEST score for each row/col and then bubblesort these.
-    ord = rnd_bubblesort( scores_all2['combined'] ) ##, n_sort_iter) 
-#     println( head(scores2[ord,:]), "\n", tail(scores2[ord,:]) )
+    ord = rnd_bubblesort2( scores_all2['combined'] ) ##, n_sort_iter) 
+    print scores_all2[ord,:].head(); print scores_all2[ord,:].tail()
 
 #     new_clusters = saved_clusters = copy_clusters( clusters, true, false ); ## make a copy for updating
 #     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights() ## DONE: don't need to update n or m scores if their weights are 0
