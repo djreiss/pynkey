@@ -81,7 +81,7 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     return scores_out
 
 ## Native code: 119s
-def rnd_bubblesort( scores, Nrepeats=None ):
+def rnd_bubblesort( scores, Nrepeats ): ## Nrepeats=None
     lsc = len(scores)
     if Nrepeats == None: ## is None:
         Nrepeats = lsc * 2
@@ -101,7 +101,7 @@ def rnd_bubblesort( scores, Nrepeats=None ):
             o1 = ord[j]
             o2 = ord[j+1]
             g1 = sc[o1]
-            g2 = scores[o2]
+            g2 = sc[o2]
             if g1 == g2 and g2 == the_max:
                 continue
             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
