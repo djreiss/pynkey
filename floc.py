@@ -81,51 +81,56 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     return scores_out
 
 ## Native code: 119s
-def rnd_bubblesort( scores, Nrepeats ): ## Nrepeats=None
+def rnd_bubblesort( scores, Nrepeats ): ##=None ): ## make sure scores is a copy, b/c NaNs will get replaced in this copy
     lsc = len(scores)
     if Nrepeats == None: ## is None:
         Nrepeats = lsc * 2
-    ord = np.arange(lsc)
-    rnd.shuffle(ord) ## start w/ random order
-    tmp = ut.minmax(scores)
-    R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
-    the_max = tmp[1]
+    ords = np.arange(lsc)
+    rnd.shuffle(ords) ## start w/ random order
+    (tmp1, tmp2) = (np.nanmin(scores), np.max(scores)) ##utils.minmax(scores)
+    R = 2.0 * ( tmp2-tmp1 ) ## Denominator of value to compute prob. from
+    the_max = tmp2
     n = lsc - 1
     sc = scores.copy()
     sc[ np.isnan(sc) ] = the_max ## replace NaN with maximum score
     n_switches = 0
+    o1 = o2 = 0
+    g1 = g2 = p = 0.
     for i in xrange(Nrepeats): ## TBD: this double loop can be sped up with weave!!!
-        o1 = o2 = g1 = g2 = p = 0.
         rnds = rnd.rand(n)
         for j in xrange(n):
-            o1 = ord[j]
-            o2 = ord[j+1]
+            o1 = ords[j]
+            o2 = ords[j+1]
             g1 = sc[o1]
             g2 = sc[o2]
             if g1 == g2 and g2 == the_max:
                 continue
             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
-            if rnds[j] < p: ##rnd.rand() < p: ## switch???
-                ord[j] = o2
-                ord[j+1] = o1
+            if p > rnds[j]: ##rnd.rand() < p: ## switch???
+                ords[j] = o2
+                ords[j+1] = o1
                 n_switches += 1
         if i % 1000 == 1:
             print( i, n_switches, Nrepeats )
-    return ord
+    return ords
 
 ## This is jit-c'd via LVVM using numba - takes about 127 secs
 ## seems that it is not really jit-ed
-from numba import float64, int64, jit
-rnd_bubblesort2 = jit( int64[:]( float64[:], int64 ) )( rnd_bubblesort )
+## seems that I need to do more trickery to get it to compile; see
+## http://www.reddit.com/r/Python/comments/1wnt5h/numba_code_slower_than_pure_python_code/
+## https://stackoverflow.com/questions/18071285/numba-slow-when-assigning-to-an-array
+## https://stackoverflow.com/questions/21468170/numba-code-slower-than-pure-python
+#from numba import float64, int64, jit
+#rnd_bubblesort2 = jit( int64[:]( float64[:], int64 ), nopython=True )( rnd_bubblesort )
 
 ## this is weaved (using c++) -- takes about 3.04 seconds
 import scipy.weave
-def rnd_bubblesort3( scores, Nrepeats=None ):
+def rnd_bubblesort3( scores, Nrepeats=None ): ## make sure scores is a copy, b/c NaNs will get replaced in this copy
     lsc = len(scores)
     if Nrepeats is None:
         Nrepeats = lsc * 2
-    ord = np.arange(lsc)
-    rnd.shuffle(ord) ## start w/ random order
+    ords = np.arange(lsc)
+    rnd.shuffle(ords) ## start w/ random order
     tmp = ut.minmax(scores)
     R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
     the_max = tmp[1]
@@ -138,22 +143,22 @@ def rnd_bubblesort3( scores, Nrepeats=None ):
         code = \
 """
   for ( int j=0; j<n; j++ ) {
-      int o1 = ord(j), o2 = ord(j+1);
+      int o1 = ords(j), o2 = ords(j+1);
       double g1 = sc(o1), g2 = sc(o2);
       if ( g1 == g2 && g2 == (double)the_max ) continue;
       double p = 0.5 + ( g1 - g2 ) / (double)R; // compute prob of switching
       if ( rnds(j) < p ) { // switch???
-          ord(j) = o2;
-          ord(j+1) = o1;
+          ords(j) = o2;
+          ords(j+1) = o1;
           switchesN(0) ++;
       }
     }
  """
-        scipy.weave.inline(code,['ord','n','sc','R','switchesN','rnds','the_max'],
+        scipy.weave.inline(code,['ords','n','sc','R','switchesN','rnds','the_max'],
                            type_converters=scipy.weave.converters.blitz)
         if i % 1000 == 1:
             print i, switchesN[0], Nrepeats
-    return ord
+    return ords
 
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
 def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
@@ -166,24 +171,25 @@ def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvemen
     ##    which to perform the moves.
     ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
     ##  Need to just use the BEST score for each row/col and then bubblesort these.
-    ord = rnd_bubblesort2( scores_all2['combined'].values ) ##, n_sort_iter) 
+    ord = rnd_bubblesort3( scores_all2['combined'].values.copy() ) ##, n_sort_iter)  ## copied b/c it replaces NaNs
     print scores_all2.ix[ord,:].head(); print scores_all2.ix[ord,:].tail()
 
-#     new_clusters = saved_clusters = copy_clusters( clusters, true, false ); ## make a copy for updating
-#     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights() ## DONE: don't need to update n or m scores if their weights are 0
+    new_clusters = saved_clusters = funcs.copy_clusters( clusters, deep=True ) ## make a copy for updating
+    ## don't need to update n or m scores if their weights are 0:
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
 
-#     all_resids = float32( [ clusters[k].resid for k=1:k_clust ] )
-#     all_dens_string = float32( [ clusters[k].dens_string for k=1:k_clust ] )
-#     all_meanp_meme = float32( [ clusters[k].meanp_meme for k=1:k_clust ] )
-#     all_volumes = zeros( Float32, length(all_resids) )
-#     mean_resid = nanmean(all_resids)
-#     mean_dens_string = nanmean(all_dens_string) ## Should usually increase, sometimes get worse
-#     mean_meanp_meme = nanmean(all_meanp_meme) ## Should usually decrease, sometimes get worse
-#     counts_gene = get_cluster_row_counts( clusters ) ## Clusters per gene score
-#     #scores_gene = get_cluster_row_count_scores( counts_gene )
-#     #mean_score_gene = nanmean(scores_gene)
-#     no_improvements = 0 ## Number of updates in which we haven't seen an improvement
-#     n_improvements = 0; n_tries = 0
+    all_resids = np.array( [ clusters[k].resid for k in clusters.keys() ] )
+    all_dens_string = np.array( [ clusters[k].dens_string for k in clusters.keys() ] )
+    all_meanp_meme = np.array( [ clusters[k].meanp_meme for k in clusters.keys() ] )
+    all_volumes = np.zeros_like( all_resids )
+    mean_resid = np.nanmean(all_resids)
+    mean_dens_string = np.nanmean(all_dens_string) ## Should usually increase, sometimes get worse
+    mean_meanp_meme = np.nanmean(all_meanp_meme) ## Should usually decrease, sometimes get worse
+    counts_gene = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene score
+    #scores_gene = get_cluster_row_count_scores( counts_gene )
+    #mean_score_gene = nanmean(scores_gene)
+    no_improvements = 0 ## Number of updates in which we haven't seen an improvement
+    n_improvements = n_tries = 0
 #     for i=ord ## Update bicusters -- should "store" the one with the best mean resid during the updates
 #         sc = scores2[i,:]
 #         kUpd = sc["k"][1]
