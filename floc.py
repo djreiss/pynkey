@@ -116,7 +116,7 @@ def rnd_bubblesort( scores, Nrepeats=None ):
 ## This is jit-c'd via LVVM using numba - takes about 127 secs
 ## seems that it is not really jit-ed
 from numba import float64, int64, jit
-rnd_bubblesort2 = jit( int64[:]( double[:], int64 ) )( rnd_bubblesort )
+rnd_bubblesort2 = jit( int64[:]( float64[:], int64 ) )( rnd_bubblesort )
 
 ## this is weaved (using c++) -- takes about 3.04 seconds
 import scipy.weave
