@@ -80,7 +80,7 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ] )
     return scores_out
 
-def rnd_bubblesort( scores, Nrepeats ):
+def rnd_bubblesort( scores, Nrepeats=None ):
     lsc = len(scores)
     if Nrepeats == None: ## is None:
         Nrepeats = lsc * 2
@@ -95,7 +95,6 @@ def rnd_bubblesort( scores, Nrepeats ):
     ## TBD: this double loop can be sped up with weave!!!
     n_switches = 0
     for i in xrange(Nrepeats):
-        print( i )
         o1 = o2 = g1 = g2 = p = 0.
         rnds = rnd.rand(n)
         for j in xrange(n):
