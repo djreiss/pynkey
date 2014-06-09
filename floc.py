@@ -106,7 +106,6 @@ def rnd_bubblesort( scores, Nrepeats=None ):
                 continue
             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
             if rnds[j] < p: ##rnd.rand() < p: ## switch???
-                print( j )
                 ord[j] = o2
                 ord[j+1] = o1
                 n_switches += 1
