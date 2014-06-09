@@ -105,7 +105,7 @@ def rnd_bubblesort( scores, Nrepeats ):
             g1 = sc[o1]
             ##if np.isnan(g1): ## is NA: 
             ##    g1 = the_max ## replace NaN with maximum score
-            ##g2 = scores[o2]
+            g2 = scores[o2]
             ##if np.isnan(g2): ## is NA:
             ##    g2 = the_max ## replace NaN with maximum score
             if g1 == g2 and g2 == the_max:
