@@ -81,7 +81,6 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     return scores_out
 
 from numba import jit
-
 @jit
 def rnd_bubblesort( scores, Nrepeats ):
     lsc = len(scores)
@@ -118,11 +117,10 @@ def rnd_bubblesort( scores, Nrepeats ):
                 ord[j+1] = o1
                 n_switches += 1
         if i % 10000 == 1:
-            print i, n_switches, Nrepeats
+            print i ##, n_switches, Nrepeats
     return ord
 
 import scipy.weave
-
 def rnd_bubblesort2( scores, Nrepeats=None ):
     lsc = len(scores)
     if Nrepeats is None:
