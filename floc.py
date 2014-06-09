@@ -80,6 +80,7 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ] )
     return scores_out
 
+## Native code: 119s
 def rnd_bubblesort( scores, Nrepeats=None ):
     lsc = len(scores)
     if Nrepeats == None: ## is None:
@@ -92,9 +93,8 @@ def rnd_bubblesort( scores, Nrepeats=None ):
     n = lsc - 1
     sc = scores.copy()
     sc[ np.isnan(sc) ] = the_max ## replace NaN with maximum score
-    ## TBD: this double loop can be sped up with weave!!!
     n_switches = 0
-    for i in xrange(Nrepeats):
+    for i in xrange(Nrepeats): ## TBD: this double loop can be sped up with weave!!!
         o1 = o2 = g1 = g2 = p = 0.
         rnds = rnd.rand(n)
         for j in xrange(n):
@@ -113,8 +113,14 @@ def rnd_bubblesort( scores, Nrepeats=None ):
             print( i, n_switches, Nrepeats )
     return ord
 
+## This is jit-c'd via LVVM using numba - takes about 127 secs
+## seems that it is not really jit-ed
+from numba import float64, int64, jit
+rnd_bubblesort2 = jit( int64[:]( double[:], int64 ) )( rnd_bubblesort )
+
+## this is weaved (using c++) -- takes about 3.04 seconds
 import scipy.weave
-def rnd_bubblesort2( scores, Nrepeats=None ):
+def rnd_bubblesort3( scores, Nrepeats=None ):
     lsc = len(scores)
     if Nrepeats is None:
         Nrepeats = lsc * 2
@@ -148,10 +154,6 @@ def rnd_bubblesort2( scores, Nrepeats=None ):
         if i % 1000 == 1:
             print i, switchesN[0], Nrepeats
     return ord
-
-from numba import double, int64, jit
-
-rnd_bubblesort3 = jit( double[:]( double[:], int64 ) )( rnd_bubblesort )
 
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
 def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
