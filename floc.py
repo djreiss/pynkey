@@ -80,6 +80,9 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ] )
     return scores_out
 
+from numba import jit
+
+@jit
 def rnd_bubblesort( scores, Nrepeats=None ):
     lsc = len(scores)
     if Nrepeats is None:
@@ -153,8 +156,6 @@ def rnd_bubblesort2( scores, Nrepeats=None ):
             print i, switchesN[0], Nrepeats
     return ord
 
-# #floc_update(clusters) = floc_update(clusters, 25)
-
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
 def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
 
@@ -167,7 +168,7 @@ def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvemen
     ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
     ##  Need to just use the BEST score for each row/col and then bubblesort these.
     ord = rnd_bubblesort2( scores_all2['combined'] ) ##, n_sort_iter) 
-    print scores_all2[ord,:].head(); print scores_all2[ord,:].tail()
+    print scores_all2.ix[ord,:].head(); print scores_all2.ix[ord,:].tail()
 
 #     new_clusters = saved_clusters = copy_clusters( clusters, true, false ); ## make a copy for updating
 #     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights() ## DONE: don't need to update n or m scores if their weights are 0
