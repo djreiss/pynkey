@@ -85,7 +85,7 @@ from numba import jit
 @jit
 def rnd_bubblesort( scores, Nrepeats=None ):
     lsc = len(scores)
-    if Nrepeats is None:
+    if Nrepeats == None: ## is None:
         Nrepeats = lsc * 2
     ord = np.arange(lsc)
     rnd.shuffle(ord) ## start w/ random order
@@ -102,10 +102,10 @@ def rnd_bubblesort( scores, Nrepeats=None ):
             o1 = ord[j]
             o2 = ord[j+1]
             g1 = scores[o1]
-            if g1 is NA: 
+            if np.isnan(g1): ## is NA: 
                 g1 = the_max ## replace NaN with maximum score
             g2 = scores[o2]
-            if g2 is NA:
+            if np.isnan(g2): ## is NA:
                 g2 = the_max ## replace NaN with maximum score
             if g1 == g2 and g2 == the_max:
                 continue
