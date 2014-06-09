@@ -83,7 +83,7 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
 from numba import jit
 
 @jit
-def rnd_bubblesort( scores, Nrepeats=None ):
+def rnd_bubblesort( scores, Nrepeats ):
     lsc = len(scores)
     if Nrepeats == None: ## is None:
         Nrepeats = lsc * 2
@@ -93,6 +93,8 @@ def rnd_bubblesort( scores, Nrepeats=None ):
     R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
     the_max = tmp[1]
     n = lsc - 1
+    sc = scores.values.copy()
+    sc[ np.isnan(sc) ] = the_max ## replace NaN with maximum score
     ## TBD: this double loop can be sped up with weave!!!
     n_switches = 0
     for i in xrange(Nrepeats):
@@ -101,12 +103,12 @@ def rnd_bubblesort( scores, Nrepeats=None ):
         for j in xrange(n):
             o1 = ord[j]
             o2 = ord[j+1]
-            g1 = scores[o1]
-            if np.isnan(g1): ## is NA: 
-                g1 = the_max ## replace NaN with maximum score
-            g2 = scores[o2]
-            if np.isnan(g2): ## is NA:
-                g2 = the_max ## replace NaN with maximum score
+            g1 = sc[o1]
+            ##if np.isnan(g1): ## is NA: 
+            ##    g1 = the_max ## replace NaN with maximum score
+            ##g2 = scores[o2]
+            ##if np.isnan(g2): ## is NA:
+            ##    g2 = the_max ## replace NaN with maximum score
             if g1 == g2 and g2 == the_max:
                 continue
             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
