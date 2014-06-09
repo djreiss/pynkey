@@ -103,21 +103,16 @@ def rnd_bubblesort( scores, Nrepeats ):
             o1 = ord[j]
             o2 = ord[j+1]
             g1 = sc[o1]
-            ##if np.isnan(g1): ## is NA: 
-            ##    g1 = the_max ## replace NaN with maximum score
             g2 = scores[o2]
-            ##if np.isnan(g2): ## is NA:
-            ##    g2 = the_max ## replace NaN with maximum score
             if g1 == g2 and g2 == the_max:
                 continue
             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
             if rnds[j] < p: ##rnd.rand() < p: ## switch???
-                ##print i,j,n,Nrepeats
                 ord[j] = o2
                 ord[j+1] = o1
                 n_switches += 1
         if i % 10000 == 1:
-            print i ##, n_switches, Nrepeats
+            print i, n_switches, Nrepeats
     return ord
 
 import scipy.weave
