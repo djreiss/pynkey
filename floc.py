@@ -80,23 +80,22 @@ def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ] )
     return scores_out
 
-from numba import jit
-@jit
 def rnd_bubblesort( scores, Nrepeats ):
     lsc = len(scores)
     if Nrepeats == None: ## is None:
         Nrepeats = lsc * 2
     ord = np.arange(lsc)
     rnd.shuffle(ord) ## start w/ random order
-    tmp = ut.minmax(scores.values)
+    tmp = ut.minmax(scores)
     R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
     the_max = tmp[1]
     n = lsc - 1
-    sc = scores.values.copy()
+    sc = scores.copy()
     sc[ np.isnan(sc) ] = the_max ## replace NaN with maximum score
     ## TBD: this double loop can be sped up with weave!!!
     n_switches = 0
     for i in xrange(Nrepeats):
+        print( i )
         o1 = o2 = g1 = g2 = p = 0.
         rnds = rnd.rand(n)
         for j in xrange(n):
@@ -108,11 +107,12 @@ def rnd_bubblesort( scores, Nrepeats ):
                 continue
             p = 0.5 + ( g1 - g2 ) / R ## compute prob of switching
             if rnds[j] < p: ##rnd.rand() < p: ## switch???
+                print( j )
                 ord[j] = o2
                 ord[j+1] = o1
                 n_switches += 1
         if i % 1000 == 1:
-            print i, n_switches, Nrepeats
+            print( i, n_switches, Nrepeats )
     return ord
 
 import scipy.weave
@@ -122,11 +122,11 @@ def rnd_bubblesort2( scores, Nrepeats=None ):
         Nrepeats = lsc * 2
     ord = np.arange(lsc)
     rnd.shuffle(ord) ## start w/ random order
-    tmp = ut.minmax(scores.values)
+    tmp = ut.minmax(scores)
     R = 2.0 * ( tmp[1]-tmp[0] ) ## Denominator of value to compute prob. from
     the_max = tmp[1]
     n = lsc - 1
-    sc = scores.values.copy()
+    sc = scores.copy()
     sc[ np.isnan(sc) ] = the_max ## replace NaN with maximum score
     switchesN = np.array([0]) ## count the number of switches. Not really necessary
     for i in xrange(Nrepeats):
@@ -151,6 +151,10 @@ def rnd_bubblesort2( scores, Nrepeats=None ):
             print i, switchesN[0], Nrepeats
     return ord
 
+from numba import double, int64, jit
+
+rnd_bubblesort3 = jit( double[:]( double[:], int64 ) )( rnd_bubblesort )
+
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
 def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
 
@@ -162,7 +166,7 @@ def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvemen
     ##    which to perform the moves.
     ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
     ##  Need to just use the BEST score for each row/col and then bubblesort these.
-    ord = rnd_bubblesort2( scores_all2['combined'] ) ##, n_sort_iter) 
+    ord = rnd_bubblesort2( scores_all2['combined'].values ) ##, n_sort_iter) 
     print scores_all2.ix[ord,:].head(); print scores_all2.ix[ord,:].tail()
 
 #     new_clusters = saved_clusters = copy_clusters( clusters, true, false ); ## make a copy for updating
