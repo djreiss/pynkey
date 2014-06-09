@@ -111,7 +111,7 @@ def rnd_bubblesort( scores, Nrepeats ):
                 ord[j] = o2
                 ord[j+1] = o1
                 n_switches += 1
-        if i % 10000 == 1:
+        if i % 1000 == 1:
             print i, n_switches, Nrepeats
     return ord
 
