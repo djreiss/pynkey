@@ -1,3 +1,5 @@
+import tempfile
+
 from numpy.random import uniform
 import numpy as np
 import random
@@ -19,6 +21,14 @@ def do_something_par( items, func, threads=None ): # None ensures that it makes 
     out = pool.map(func, items)
     pool.terminate()
     return out
+
+def writeLines( lines, fname=None ):
+    if fname is None:
+        fname = tempfile.mktemp()
+    handle = open(fname, 'w')
+    handle.write('\n'.join(lines)) ## assumes lines are an array split by '\n' - if not then do '\n'.join(lines) first
+    handle.close()
+    return fname
  
 def slice_sampler(px, N = 1, x = None):
     """
