@@ -10,7 +10,7 @@ def run_pynkey(iter):
 #     for i=iter:n_iters
 #         iter = i
 #         (clusters, n_improvements, stats_tmp) = 
-    floc.do_floc( globals.clusters, globals.iter, globals.all_genes, globals.ratios, globals.string_net )
+    floc.run( globals.clusters, globals.iter, globals.all_genes, globals.ratios, globals.string_net )
 #         println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
 #         stats_df = rbind( stats_df, stats_tmp )
 #         write_table( "output/$(organism)_stats.tsv", stats_df )

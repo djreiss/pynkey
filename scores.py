@@ -49,11 +49,18 @@ def get_combined_scores( scores_DF, iter, ratios ):
     out += tmp
     return out
 
-# function get_combined_score( r::Float32, n::Float32, m::Float32, v::Float32, g::Float32 )
-#     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights()
-#     weight_r * ( isnan(r) || isinf(r) ? 0 : r ) + 
-#     weight_n * ( isnan(n) || isinf(n) ? 0 : n ) + 
-#     weight_m * ( isnan(m) || isinf(m) ? 0 : m ) +
-#     weight_v * ( isnan(v) || isinf(v) ? 0 : v ) +
-#     weight_g * ( isnan(g) || isinf(g) ? 0 : g )
-# end
+def get_combined_score( r, n, m, v, g, iter, ratios ):
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = get_score_weights( iter, ratios )
+
+    def zero_if_bad(x):
+        if np.isnan(x) or np.isinf(x):
+            return 0
+        return x
+
+    out = weight_r * zero_if_bad(r) + \
+        weight_n * zero_if_bad(n) + \
+        weight_m * zero_if_bad(m) + \
+        weight_v * zero_if_bad(v) + \
+        weight_g * zero_if_bad(g)
+    return out
+

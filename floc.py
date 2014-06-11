@@ -8,12 +8,15 @@ from numpy import nan as NA
 import utils as ut
 import scores
 from Bicluster import bicluster,fill_all_cluster_scores_par
+import funcs
+import meme
+from params import n_iters
 
 print 'importing floc'
 
 ## Get gain scores for all possible row/col moves
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
-def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999):  ## 5, 20)
+def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999):  ## 5, 20)
     ## First, collate move scores into a single DataFrame for stochastic sorting
     ## Use pd.DataFrame for scores rather than matrix
 
@@ -60,7 +63,7 @@ def get_floc_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9
     return all_scores
 
 # ## Instead of scores for ALL possible moves, make a matrix of n_best best scores for each row/col
-def get_floc_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
+def get_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
     df_r = all_scores[ all_scores.is_row_col == 'r' ]
     if n_best_row < 9999:
         tmp = df_r.groupby( 'row_col' ) ## Cool!
@@ -161,11 +164,11 @@ def rnd_bubblesort3( scores, Nrepeats=None ): ## make sure scores is a copy, b/c
     return ords
 
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
-def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
+def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
 
-    scores_all = get_floc_scores_all(clusters, iter, all_genes, ratios, string_net)
+    scores_all = get_scores_all(clusters, iter, all_genes, ratios, string_net)
 
-    scores_all2 = get_floc_scores_best(scores_all)
+    scores_all2 = get_scores_best(scores_all)
 
     ## For FLOC, identify the BEST score for each row/column, then bubble sort those to get the order in
     ##    which to perform the moves.
@@ -190,89 +193,86 @@ def floc_update(clusters, iter, all_genes, ratios, string_net, max_no_improvemen
     #mean_score_gene = nanmean(scores_gene)
     no_improvements = 0 ## Number of updates in which we haven't seen an improvement
     n_improvements = n_tries = 0
-#     for i=ord ## Update bicusters -- should "store" the one with the best mean resid during the updates
-#         sc = scores2[i,:]
-#         kUpd = sc["k"][1]
-#         cc::bicluster = copy_cluster(new_clusters[kUpd], true, true)
-#         row_col = sc["row_col_ind"][1]
-#         if sc["is_row_col"][1] == 'r'
-#             ##if sc["is_in"][1] && length(cc.rows) <= min_rows continue; end ## Don't remove if we're already at the min. Now: use volume score instead
-#             cc.rows = sc["is_in"][1] ? remove(cc.rows, row_col) : [cc.rows, row_col]
-#             cc.changed[1] = true
-#         elseif sc["is_row_col"][1] == 'c'
-#             cc.cols = sc["is_in"][1] ? remove(cc.cols, row_col) : [cc.cols, row_col]
-#             cc.changed[2] = true
-#         end
-#         cc.resid = bicluster_residue( cc, ratios )
-#         all_resids[kUpd] = cc.resid
-#         if sc["is_row_col"][1] == 'r'  ## Only update network/motif scores if it's a row, duh!
-#             if abs(weight_n) > 0            ## only compute if need to
-#                 cc.dens_string = bicluster_network_density( cc, string_net )
-#                 all_dens_string[kUpd] = cc.dens_string
-#             end
-#             if weight_m > 0            ## only compute if need to
-#                 cc.meanp_meme = bicluster_meme_pval( cc )
-#                 all_meanp_meme[kUpd] = cc.meanp_meme
-#             end
-#             ## TODO: incorporate score_g (nclust per gene) and score_v (ngene per clust) into combined scores
-# #             if weight_g > 0 
-# #                 counts_gene[ row_col ] += (sc["is_in"][1] ? -1 : 1) ## Clusters per gene score
-# #                 mean_score_gene = nanmean(get_cluster_row_count_scores(cc, counts_gene)) ## Clusters per gene score
-# #                 counts_gene[ row_col ] -= (sc["is_in"][1] ? -1 : 1) ## revert it back
-# #             end
-#         end
-#         ##all_scores[kUpd] = get_combined_score( cc.resid, cc.dens_string, cc.meanp_meme, 0.0f0 )
-#         ##all_scores = get_combined_scores( sdize_vector( all_resids ), sdize_vector( all_dens_string ), 
-#         ##                                 sdize_vector( all_meanp_meme ), all_volumes )
-#         ## Need to normalize these deltas vs. the stddev of the corresponding scores in the "score" dataframe!
-#         score_delta = get_combined_score( (nanmean(all_resids) - mean_resid) / nansd(all_resids), 
-#                                          (nanmean(all_dens_string) - mean_dens_string) / nansd(all_dens_string),
-#                                          (nanmean(all_meanp_meme) - mean_meanp_meme) / nansd(all_meanp_meme), 
-#                                          0.0f0, 0.0f0 ) ##(nanmean(scores_gene) - mean_score_gene) / nansd(scores_gene) )
-#         new_clusters[kUpd] = cc
-#         n_tries += 1
-#         ##println(nanmean(all_scores)," ",mean_scores)
-#         if score_delta <= 0 ## mean bicluster scores improved, so store the entire cluster stack
-#             n_improvements += 1
-#             mean_resid = nanmean(all_resids) ## Should usually decrease, sometimes get worse
-#             mean_dens_string = nanmean(all_dens_string) ## Should usually increase, sometimes get worse
-#             mean_meanp_meme = nanmean(all_meanp_meme) ## Should usually decrease, sometimes get worse
-#             ##mean_scores = nanmean(all_scores) ## Should usually decrease, sometimes get worse
-#             ##saved_clusters[kUpd] = cc ##copy_cluster(cc, true)
-#             saved_clusters = copy_clusters( new_clusters, false, false ) ## make a copy to keep the best update
-#             output = @sprintf( "%d %.4f %.4f %.4f %.4f %d %c %s %d %.4f %.4f %.4f %d %d %d",
-#                               i, mean_resid, mean_dens_string, mean_meanp_meme, score_delta, ##mean_scores,
-#                               Base.int(kUpd), sc["is_row_col"][1], sc["is_in"][1]?"remove":"add", row_col, 
-#                               cc.resid, clusters[kUpd].resid, cc.resid-clusters[kUpd].resid, 
-#                               n_tries, n_improvements, no_improvements)
-#             println( output )
-#             no_improvements = 0
-#         else
-#             no_improvements += 1
-#         end
-#         if no_improvements > max_no_improvements break; end
-#     end
-#     (saved_clusters, n_improvements, n_tries, scores2[ord,:])
-# end
 
-def do_floc(clusters, iter, all_genes, ratios, string_net):
-#     ##clusters = fill_cluster_scores(clusters) ## dont need this since each cluster's scores are updated in floc_update
-#     ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) -- 
-#     ##    may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high
-#     (clusters, n_improvements, n_tries, scores) = 
-    floc_update(clusters, iter, all_genes, ratios, string_net) ##, max_improvements_per_iter)
-#     (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = get_score_weights( iter )
-#     (weight_r_new, weight_n_new, weight_m_new, weight_c_new, weight_v_new, weight_g_new) = get_score_weights( iter + 1 )
-#     n_motifs = get_n_motifs()
-#     n_motifs_new = get_n_motifs(iter+1, n_iters)
-#     if ( abs(weight_n) <= 0 && abs(weight_n_new) > 0 ) || ( weight_m <= 0 && weight_m_new > 0 ) || ( n_motifs != n_motifs_new )
-#         for k in 1:k_clust clusters[k].changed[1] = true; end ## in this instance, need to force update of all clusters
-#     end
-#     iter += 1 ## now update clusters as if the new iteration has started
-#     changed_rows = sum( [clusters[k].changed[1] for k=1:k_clust] )
-#     changed_cols = sum( [clusters[k].changed[2] for k=1:k_clust] )
-#     ## First, do the meme/mast-ing in parallel (only if m0 > 0)
-#     (weight_r, weight_n, weight_m, weight_c, weight_v) = get_score_weights()
+    for i in ord: ## Update bicusters -- should "store" the one with the best mean resid during the updates
+        sc = scores_all2.ix[i]
+        kUpd = sc.k
+        cc = new_clusters[kUpd].copy(deep=False)
+        row_col = sc.row_col
+        if sc.is_row_col == 'r':
+            ##if sc.is_in && len(cc.rows) <= min_rows: continue ## Don't remove if we're already at the min. Now: use volume score instead
+            cc.rows = cc.rows[ cc.rows != row_col ] if sc.is_in else np.append( cc.rows, row_col )
+            cc.changed[0] = True
+        elif sc.is_row_col == 'c':
+            cc.cols = cc.cols[ cc.cols != row_col ] if sc.is_in else np.append( cc.cols, row_col )
+            cc.changed[1] = True
+        cc.resid = cc.compute_residue( ratios )
+        all_resids[kUpd] = cc.resid
+        if sc.is_row_col == 'r':  ## Only update network/motif scores if it's a row, duh!
+            if abs(weight_n) > 0:            ## only compute if need to
+                cc.dens_string = cc.compute_network_density( string_net )
+                all_dens_string[kUpd] = cc.dens_string
+            if weight_m > 0:            ## only compute if need to
+                cc.meanp_meme = cc.compute_meme_pval()
+                all_meanp_meme[kUpd] = cc.meanp_meme
+            ## TODO: incorporate score_g (nclust per gene) and score_v (ngene per clust) into combined scores
+#            if weight_g > 0:
+#                counts_gene[ row_col ] += (-1 if sc.is_in else 1) ## Clusters per gene score
+#                mean_score_gene = nanmean(get_cluster_row_count_scores(cc, counts_gene)) ## Clusters per gene score
+#                counts_gene[ row_col ] -= (-1 if scis_in else 1) ## revert it back
+        ##all_scores[kUpd] = get_combined_score( cc.resid, cc.dens_string, cc.meanp_meme, 0.0f0 )
+        ##all_scores = get_combined_scores( sdize_vector( all_resids ), sdize_vector( all_dens_string ), 
+        ##                                 sdize_vector( all_meanp_meme ), all_volumes )
+        ## Need to normalize these deltas vs. the stddev of the corresponding scores in the "score" dataframe!
+        score_delta = scores.get_combined_score( (np.nanmean(all_resids) - mean_resid) / np.nanstd(all_resids), 
+                                   (np.nanmean(all_dens_string) - mean_dens_string) / np.nanstd(all_dens_string),
+                                   (np.nanmean(all_meanp_meme) - mean_meanp_meme) / np.nanstd(all_meanp_meme), 
+                                   0., 0., ##(np.nanmean(scores_gene) - mean_score_gene) / np.nansd(scores_gene)
+                                                 iter, ratios )
+        new_clusters[kUpd] = cc
+        n_tries += 1
+        ##print np.nanmean(all_scores), mean_scores
+        if score_delta <= 0: ## mean bicluster scores improved, so store the entire cluster stack
+            n_improvements += 1
+            mean_resid = np.nanmean(all_resids) ## Should usually decrease, sometimes get worse
+            mean_dens_string = np.nanmean(all_dens_string) ## Should usually increase, sometimes get worse
+            mean_meanp_meme = np.nanmean(all_meanp_meme) ## Should usually decrease, sometimes get worse
+            ##mean_scores = np.nanmean(all_scores) ## Should usually decrease, sometimes get worse
+            ##saved_clusters[kUpd] = cc ##copy_cluster(cc, true)
+            saved_clusters = funcs.copy_clusters( new_clusters, deep=False ) ## make a copy to keep the best update
+            output = '%d %.4f %.4f %.4f %.4f %d %c %s %s %.4f %.4f %.4f %d %d %d' % \
+                (i, mean_resid, mean_dens_string, mean_meanp_meme, score_delta, ##mean_scores,
+                 kUpd, sc.is_row_col, 'remove' if sc.is_in else 'add', row_col, 
+                 cc.resid, clusters[kUpd].resid, cc.resid-clusters[kUpd].resid, 
+                 n_tries, n_improvements, no_improvements)
+            print output
+            no_improvements = 0
+        else:
+            no_improvements += 1
+        if no_improvements > max_no_improvements: 
+            break
+    return (saved_clusters, n_improvements, n_tries, scores_all2.ix[ord,:])
+
+def run(clusters, iter, all_genes, ratios, string_net):
+    ##clusters = fill_cluster_scores(clusters) ## dont need this since each clust's scores are updated in floc.update
+    ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) -- 
+    ##    may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high
+    clusters, n_improvements, n_tries, scores_all = update(clusters, iter, all_genes, ratios, string_net)
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
+    weight_r_new, weight_n_new, weight_m_new, weight_c_new, weight_v_new, weight_g_new = \
+        scores.get_score_weights( iter + 1, ratios )
+    n_motifs = meme.get_n_motifs(iter, n_iters)
+    n_motifs_new = meme.get_n_motifs(iter+1, n_iters)
+    if ( abs(weight_n) <= 0 and abs(weight_n_new) > 0 ) or \
+            ( weight_m <= 0 and weight_m_new > 0 ) or \
+            ( n_motifs != n_motifs_new ):
+        for k in clusters.keys():
+            clusters[k].changed[0] = True ## in this instance, need to force update of all clusters
+    iter += 1 ## now update clusters as if the new iteration has started
+    changed_rows = sum( [clusters[k].changed[0] for k in range(len(clusters))] )
+    changed_cols = sum( [clusters[k].changed[1] for k in range(len(clusters))] )
+
+    ## First, do the meme/mast-ing in parallel (only if m0 > 0)
 #     clusters = re_seed_all_clusters_if_necessary(clusters) ## avoid meme-ing 0-gene clusters
 #     if weight_m > 0 
 #         if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
