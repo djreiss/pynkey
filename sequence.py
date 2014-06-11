@@ -70,7 +70,8 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
         if rng[1] > len(genome_seq):
             rng[1] = len(genome_seq)
         seq = genome_seq[ rng[0]:rng[1] ]
-        #if debug: print gene + ' ' + upstream_gene + ' ' + strnd + ' ' + strt + ' ' + rng + ' ' + seq
+        if debug: 
+            print gene, upstream_gene, strnd, strt, rng, seq
         if strnd == "-":
             seq = seq.reverse_complement()
         #print gene
@@ -78,7 +79,8 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
                                       'strand':[strnd]}, index=['gene'] )
 
     #print seqs.keys()
-    print len(seqs); print(seqs[genes[0]])
+    if debug:
+        print len(seqs); print(seqs[genes[0]])
     out = pd.concat(seqs, ignore_index=True)
     out.index = out.gene
     return out

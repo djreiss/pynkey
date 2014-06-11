@@ -13,6 +13,8 @@ import funcs
 import params
 import globals
 from utils import slice_sampler, do_something_par
+import sequence as seq
+import meme
 
 print 'importing Bicluster'
 
@@ -49,7 +51,7 @@ class bicluster:
         self.scores_c = np.array([])
         self.scores_n = np.array([])
         self.scores_m = np.array([])
-        self.meme_out = ['']
+        self.meme_out = ''
         self.mast_out = pd.DataFrame()
         self.changed = np.ones(2, np.bool)
 
@@ -144,12 +146,43 @@ class bicluster:
             all_dens[i] = funcs.subnetwork_density( rows2, net1, already_subnetted=True )
         return all_dens - dens
 
+    def get_sequences( self, anno, genome_seqs, op_table, distance, do_filter=True):
+        seqs = seq.get_sequences(self.rows, anno, genome_seqs, op_table, True, distance, False) 
+        if do_filter:
+            seqs = seq.filter_sequences(seqs, distance)
+        return seqs
+
+    ## put it here instead of in meme.py, b/c its better here
+    def re_meme( self, distance, allSeqs_fname, anno, genome_seqs, op_table, motif_width_range, n_motifs=2 ): 
+        seqs = self.get_sequences( anno, genome_seqs, op_table, distance, do_filter=True )
+        k, meme_out, mast_out = meme.re_meme_bicluster( self.k, seqs, n_motifs, allSeqs_fname, 
+                                                        motif_width_range, False )
+        if k != self.k:
+            warnings.warn( 'Uh oh! %d' %k )
+        else:
+            self.meme_out = meme_out
+            mast_out = mast_out.set_index( 'Gene' )
+            self.mast_out = mast_out
+            self.changed[0] = True
+        return self
+
     def compute_meme_pval( self ):
         if np.size(self.mast_out,0) <= 0:
             return NA
-        df = self.mast_out.ix[ self.rows ] ## np.in1d( self.mast_out.Gene, self.rows ) ] ## make sure index of mast_out is Gene !!!
-        mn = np.nanmean( log10( df['P-value'] ) )
+        df = self.mast_out.ix[ self.rows ] ## make sure index of mast_out is Gene !!! Done - in bicluster.re_meme()
+        mn = np.nanmean( np.log10( df['P-value'] ) )
         return mn
+
+    def compute_meme_pval_deltas( self, all_genes ):
+        is_in = np.in1d( all_genes, self.rows )
+        pval = self.compute_meme_pval()
+        all_pvals = np.zeros( len( all_genes ), float )
+        for i in xrange(len(all_genes)):
+            r = all_genes[i]
+            rows2 = np.append( self.rows, r ) if is_in[i] else self.rows[ self.rows != r ]
+            df = self.mast_out.ix[ rows2 ] ## make sure index of mast_out is Gene !!! Done - in bicluster.re_meme()
+            all_pvals[i] = np.nanmean( np.log10( df['P-value'] ) )
+        return all_pvals - pval
 
     ## Up-weight moves into clusters with <= 15 rows; down-weight moves out of clusters with >15 rows
     ## DONE: a little less heuristic?
@@ -185,22 +218,28 @@ class bicluster:
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
-    def fill_all_scores(self, all_genes, ratios, string_net, counts_g, all_cols):
-        if np.all(np.invert(self.changed)):
+    ## Note residual stuff needs to be computed if *either* rows *or* columns have changed.
+    def fill_all_scores(self, iter, all_genes, ratios, string_net, counts_g, all_cols, force=False):
+        weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
+        if not force and np.all(np.invert(self.changed)):
             return self
         print self.k, self.changed
-        if self.changed[0]:
-            self.resid = self.compute_residue( ratios )
-            self.dens_string = self.compute_network_density( string_net )
+        if weight_r > 0:
+            self.resid = self.compute_residue( ratios )  ## do this if *either* rows or cols changed
             self.scores_r = self.compute_residue_deltas( ratios, all_genes )
-            self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
-            self.changed[0] = False
-        if self.changed[1]:
             self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
-            self.changed[1] = False
+        if self.changed[0] or force:
+            if weight_m > 0 and self.meme_out != '':
+                self.meme_pval = self.compute_meme_pval()
+                self.scores_m = self.compute_meme_pval_deltas( all_genes )
+            if abs(weight_n) > 0:
+                self.dens_string = self.compute_network_density( string_net )
+                self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
+        self.changed[0] = self.changed[1] = False
         return self
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
+    ## Get DataFrame formatted with all scores, for floc.update()
     def get_floc_scoresDF_rows(self, iter, all_genes, ratios, counts_g):
         is_in = np.in1d( all_genes, self.rows )
         ## only use them if their weights are > 0 and they have been filled via fill_all_scores()
@@ -285,11 +324,21 @@ class bicluster:
 
     ## THis is a static function so outside the definition of the bicluster
     @staticmethod
-    def fill_all_cluster_scores(clusters, all_genes, ratios, string_net, all_conds):
+    def fill_all_cluster_scores(clusters, iter, all_genes, ratios, string_net, all_conds):
         counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
         for k in clusters:
-            print k
-            clusters[k].fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+            print 'FILL: %s' % k
+            clusters[k].fill_all_scores(iter, all_genes, ratios, string_net, counts_g, ratios.columns.values)
+        return clusters
+
+    ## THis is a static function so outside the definition of the bicluster
+    @staticmethod
+    def re_meme_all_clusters(clusters, distance_search, allSeqs_fname, anno, genome_seqs, op_table, 
+                             motif_width_range, n_motifs=2 ): 
+        for k in clusters:
+            print 'MEME: %s' % k
+            clusters[k].re_meme( distance_search, allSeqs_fname, anno, genome_seqs, op_table, 
+                                 motif_width_range, n_motifs )
         return clusters
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
@@ -334,6 +383,6 @@ def fill_all_cluster_scores_par( clusters, threads=None ):
 
 ## Keep everything global so it doesn't need to be sent to each child.
 def fill_all_scores_par( clust ):
-    clust.fill_all_scores(globals.all_genes, globals.ratios, globals.string_net, globals.counts_g, 
+    clust.fill_all_scores(globals.iter, globals.all_genes, globals.ratios, globals.string_net, globals.counts_g, 
                           globals.ratios.columns.values)
     return clust
