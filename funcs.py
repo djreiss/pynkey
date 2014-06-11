@@ -5,9 +5,7 @@ import numpy as np
 print 'importing funcs'
 
 def copy_clusters( clusters, deep=True ):
-    new_clusters = {} ## make a copy for updating
-    for k in clusters.keys():
-        new_clusters[k] = clusters[k].copy( deep )
+    new_clusters = { k:clust.copy(deep=deep) for (k,clust) in clusters.items() }
     return new_clusters
 
 def re_seed_all_clusters_if_necessary( clusters, ratios ):
