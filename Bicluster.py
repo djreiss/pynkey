@@ -386,3 +386,18 @@ def fill_all_scores_par( clust ):
     clust.fill_all_scores(globals.iter, globals.all_genes, globals.ratios, globals.string_net, globals.counts_g, 
                           globals.ratios.columns.values)
     return clust
+
+## Now this only sends over k to the children; clusters and genome_seqs, etc. are all global in childrens' namespace
+def re_meme_all_clusters_par( clusters, threads=None ):
+    meme_outs = do_something_par( clusters.keys(), re_meme_par, threads=threads )
+    meme_outs = {i[0]: (i[1], i[2]) for i in xrange(len(meme_outs))}
+    return meme_outs
+
+import meme
+def re_meme_par( clustK ):
+    n_motifs = meme.get_n_motifs( globals.iter, params.n_iters )
+    clust = globals.clusters[ clustK ]
+    seqs = clust.get_sequences( globals.anno, globals.genome_seqs, globals.op_table, params.distance_search, do_filter=True )
+    k, meme_out, mast_out = meme.re_meme_bicluster( clustK, seqs, n_motifs, globals.allSeqs_fname, 
+                                                    params.motif_width_range, True )
+    return (k, meme_out, mast_out)
