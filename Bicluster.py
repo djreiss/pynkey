@@ -290,7 +290,7 @@ class bicluster:
 
         ## DONE: add rows that are preferentially in few (or no) other clusters -- 
         ## sample from get_cluster_row_counts(clusters)
-        ##clust.rows = unique([clust.rows, [Distributions.sample([1:nrow(ratios.x)]) for i=1:5]]) ## add 5 random rows
+        ##clust.rows = np.unique([clust.rows, [Distributions.sample([1:nrow(ratios.x)]) for i=1:5]]) ## add 5 random rows
         counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
         g = np.array( counts_g.keys() )
         counts_g = np.array( counts_g.values() )
@@ -304,7 +304,7 @@ class bicluster:
                                                            ratios.shape[1]/3-len(self.cols), replace=False) ] )), 0))
         elif len(self.rows) > max_rows:
             counts_g = ( counts_g + 0.01 ) / ( np.max(counts_g) + 0.01 )
-            tmp_rows = g[np.in1d(g,self.rows)][ unique( slice_sampler( counts_g[np.in1d(g,self.rows)], 
+            tmp_rows = g[np.in1d(g,self.rows)][ np.unique( slice_sampler( counts_g[np.in1d(g,self.rows)], 
                                                                         len(self.rows)-max_rows+1 ) ) ]
             self.rows = self.rows[ np.logical_not( in1d(self.rows, tmp_rows) ) ]
         return self

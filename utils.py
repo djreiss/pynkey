@@ -49,7 +49,7 @@ def slice_sampler(px, N = 1, x = None):
     From:
     http://www.adamlaiacano.com/post/14987215771/python-function-for-sampling-from-an-arbitrary-discrete
     """
-    values = np.zeros(N, dtype=numpy.int)
+    values = np.zeros(N, dtype=np.int)
     samples = np.arange(len(px))
     px = np.array(px) / (1.*sum(px))
     u = uniform(0, max(px))

@@ -7,7 +7,8 @@ from numpy import nan as NA
 
 import utils as ut
 import scores
-from Bicluster import bicluster,fill_all_cluster_scores_par
+from Bicluster import bicluster ##,fill_all_cluster_scores_par,re_meme_all_clusters_par
+import Bicluster as bic
 import funcs
 import meme
 from params import n_iters
@@ -21,7 +22,7 @@ def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, 
     ## Use pd.DataFrame for scores rather than matrix
 
     ##bicluster.fill_all_cluster_scores(clusters, all_genes, ratios, string_net, ratios.columns.values)
-    clusters = fill_all_cluster_scores_par(clusters, threads=15)
+    clusters = bic.fill_all_cluster_scores_par(clusters, threads=15)
 
     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
     tmp = [ clusters[k].get_floc_scoresDF_rows(iter, all_genes, ratios, counts_g) for k in clusters ]
@@ -275,25 +276,27 @@ def run(clusters, iter, all_genes, ratios, string_net):
     ## First, do the meme/mast-ing in parallel (only if m0 > 0)
     ## avoid meme-ing 0-gene clusters
     clusters = funcs.re_seed_all_clusters_if_necessary(clusters, ratios, all_genes, min_rows=3, max_rows=80 )
-#     if weight_m > 0 
-#         if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
-#         else clusters = re_meme_all_biclusters_parallel(clusters, false); end
-#     end
-#     ## Next fill the clusters' scores (in parallel)
+    if weight_m > 0:
+        ##if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
+        else ##clusters = re_meme_all_biclusters_parallel(clusters, false); end
+        clusters = bic.re_meme_all_clusters_par( clusters )
+
+    ## Next fill the clusters' scores (in parallel)
 #     if nprocs() <= 1 clusters = fill_all_cluster_scores( clusters, false, false );
 #     else clusters = fill_all_cluster_scores_parallel( clusters, false, false ); end
-#     println( "ITER: ", iter )
-#     println( @sprintf( "r0: %.3f; n0: %.3f; m0: %.3f; c0: %.3f; v0: %.3f, g0: %.3f", weight_r, weight_n, weight_m, 
-#                       weight_c, weight_v, weight_g ) )
-#     println( "N_MOVES: ", n_tries )
-#     println( "N_IMPROVEMENTS: ", n_improvements )
+    clusters = bic.fill_all_cluster_scores_par(clusters)
+    print 'ITER:', iter
+    print 'r0: %.3f; n0: %.3f; m0: %.3f; c0: %.3f; v0: %.3f, g0: %.3f' % ( weight_r, weight_n, weight_m, 
+                                                                           weight_c, weight_v, weight_g )
+    print 'N_MOVES:', n_tries
+    print 'N_IMPROVEMENTS:', n_improvements
 #     stats_df = print_cluster_stats(clusters)
-#     stats_df["N_MOVES"] = n_tries
-#     stats_df["N_IMPROVEMENTS"] = n_improvements
-#     stats_df["N_CLUSTS_CHANGED_ROWS"] = changed_rows
-#     stats_df["N_CLUSTS_CHANGED_COLS"] = changed_cols
-#     println( "N_CLUSTS_CHANGED (ROWS): ", stats_df["N_CLUSTS_CHANGED_ROWS"] )
-#     println( "N_CLUSTS_CHANGED (COLS): ", stats_df["N_CLUSTS_CHANGED_COLS"] )
+#     stats_df['N_MOVES'] = n_tries
+#     stats_df['N_IMPROVEMENTS'] = n_improvements
+#     stats_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
+#     stats_df['N_CLUSTS_CHANGED_COLS'] = changed_cols
+#     print 'N_CLUSTS_CHANGED (ROWS): ', stats_df['N_CLUSTS_CHANGED_ROWS'] )
+#     print 'N_CLUSTS_CHANGED (COLS): ', stats_df['N_CLUSTS_CHANGED_COLS'] )
 #     gc()
 #     (clusters, n_improvements, stats_df)
 # end
