@@ -8,9 +8,9 @@ def copy_clusters( clusters, deep=True ):
     new_clusters = { k:clust.copy(deep=deep) for (k,clust) in clusters.items() }
     return new_clusters
 
-def re_seed_all_clusters_if_necessary( clusters, ratios ):
+def re_seed_all_clusters_if_necessary( clusters, ratios, all_genes, min_rows=3, max_rows=80 ):
     for k in clusters.keys():
-        clusters[k] = clusters[k].re_seed_if_necessary( clusters, ratios )
+        clusters[k] = clusters[k].re_seed_if_necessary( clusters, ratios, all_genes, min_rows, max_rows )
     return clusters
 
 def matrix_residue( rats ):

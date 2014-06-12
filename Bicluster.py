@@ -402,5 +402,5 @@ def re_meme_par( clustK ):
     clust = globals.clusters[ clustK ]
     seqs = clust.get_sequences( globals.anno, globals.genome_seqs, globals.op_table, params.distance_search, do_filter=True )
     k, meme_out, mast_out = meme.re_meme_bicluster( clustK, seqs, n_motifs, globals.allSeqs_fname, 
-                                                    params.motif_width_range, True )
+                                                    params.motif_width_range, verbose=False )
     return (k, meme_out, mast_out)

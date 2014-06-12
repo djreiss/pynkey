@@ -273,7 +273,8 @@ def run(clusters, iter, all_genes, ratios, string_net):
     changed_cols = sum( [clusters[k].changed[1] for k in range(len(clusters))] )
 
     ## First, do the meme/mast-ing in parallel (only if m0 > 0)
-#     clusters = re_seed_all_clusters_if_necessary(clusters) ## avoid meme-ing 0-gene clusters
+    ## avoid meme-ing 0-gene clusters
+    clusters = funcs.re_seed_all_clusters_if_necessary(clusters, ratios, all_genes, min_rows=3, max_rows=80 )
 #     if weight_m > 0 
 #         if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
 #         else clusters = re_meme_all_biclusters_parallel(clusters, false); end
