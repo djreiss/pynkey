@@ -205,7 +205,7 @@ class bicluster:
         is_in = np.in1d( all_cols, self.cols )
         lc = len(self.cols)
         score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
-        ##score_vc = fill(NA, length(b.scores_c)) ## Do we really care how many cols there are?
+        ##score_vc = fill(NA, len(b.scores_c)) ## Do we really care how many cols there are?
         return score_vc
 
     ## Up-weight moves OUT if counts_g is HIGH, and moves IN if counts_g is LOW
@@ -283,8 +283,8 @@ class bicluster:
         ## Need to fill in "empty" clusters, mostly because var is non-defined, Also because meme-ing only works 
         ## with >2 sequences. 
         ## Squash clusters that get way too big (DONE: just remove some to bring it down to max_rows)
-        if length(self.rows) < min_rows or length(self.rows) > max_rows:
-            nr = length(self.rows)
+        if len(self.rows) < min_rows or len(self.rows) > max_rows:
+            nr = len(self.rows)
             warnings.warn( "RESEEDING BICLUSTER %d (%d)" % (self.k, nr) )
 
         ## DONE: add rows that are preferentially in few (or no) other clusters -- 
