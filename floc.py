@@ -278,7 +278,7 @@ def run(clusters, iter, all_genes, ratios, string_net):
     clusters = funcs.re_seed_all_clusters_if_necessary(clusters, ratios, all_genes, min_rows=3, max_rows=80 )
     if weight_m > 0:
         ##if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
-        else ##clusters = re_meme_all_biclusters_parallel(clusters, false); end
+        ##else clusters = re_meme_all_biclusters_parallel(clusters, false); end
         clusters = bic.re_meme_all_clusters_par( clusters )
 
     ## Next fill the clusters' scores (in parallel)
