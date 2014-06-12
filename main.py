@@ -10,7 +10,7 @@ def run_pynkey(iter):
 #     for i=iter:n_iters
 #         iter = i
 #         (clusters, n_improvements, stats_tmp) = 
-    floc.run( globals.clusters, globals.iter, globals.all_genes, globals.ratios, globals.string_net )
+    floc.run( globals.clusters, iter, globals.all_genes, globals.ratios, globals.string_net, globals.startTime )
 #         println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
 #         stats_df = rbind( stats_df, stats_tmp )
 #         write_table( "output/$(organism)_stats.tsv", stats_df )
@@ -22,7 +22,8 @@ def run_pynkey(iter):
 #         if n_improvements <= 0 n_no_improvements += 1 else n_no_improvements = 0; end
 #         if iter > n_iters/2 && n_no_improvements > 5 break; end
 #     end
-    return iter + 1
+    globals.iter = iter + 1
+    return globals.iter
 # end
 
 if __name__ == '__main__':

@@ -254,7 +254,7 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
             break
     return (saved_clusters, n_improvements, n_tries, scores_all2.ix[ord,:])
 
-def run(clusters, iter, all_genes, ratios, string_net):
+def run(clusters, iter, all_genes, ratios, string_net, startTime):
     ##clusters = fill_cluster_scores(clusters) ## dont need this since each clust's scores are updated in floc.update
     ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) -- 
     ##    may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high
@@ -290,7 +290,7 @@ def run(clusters, iter, all_genes, ratios, string_net):
                                                                            weight_c, weight_v, weight_g )
     print 'N_MOVES:', n_tries
     print 'N_IMPROVEMENTS:', n_improvements
-#     stats_df = print_cluster_stats(clusters)
+    stats_df = funcs.print_cluster_stats(clusters, ratios, iter, startTime )
 #     stats_df['N_MOVES'] = n_tries
 #     stats_df['N_IMPROVEMENTS'] = n_improvements
 #     stats_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
