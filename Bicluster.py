@@ -1,5 +1,6 @@
 import sys
 import copy
+import warnings
 
 import numpy as np
 from numpy import nan as NA
@@ -296,10 +297,10 @@ class bicluster:
         if len(self.rows) < min_rows:
             counts_g = np.max(counts_g) + 0.01 - counts_g
             counts_g = counts_g / np.max(counts_g)
-            self.rows = g[ unique( slice_sampler( counts_g, 5 ) ) ]
+            self.rows = g[ np.unique( slice_sampler( counts_g, 5 ) ) ]
             ## add x/3 random cols
             self.cols = np.sort(np.unique(np.concatenate( (self.cols, \
-                                                           ratios.columns.values[ rand.choice(ratios.shape[1], 
+                                                           ratios.columns.values[ rand.choice(ratios.shape[1], \
                                                            ratios.shape[1]/3-len(self.cols), replace=False) ] )), 0))
         elif len(self.rows) > max_rows:
             counts_g = ( counts_g + 0.01 ) / ( np.max(counts_g) + 0.01 )
