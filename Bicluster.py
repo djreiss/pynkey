@@ -30,7 +30,7 @@ class bicluster:
     scores_c = None ## vector of col scores
     scores_n = None ## vector of network scores
     scores_m = None ## vector of motif scores
-    meme_out = None ## string vector - meme output
+    meme_out = None ## big string (containing \n's) - meme output
     mast_out = None ## DataFrame - parsed meme output
     changed = None
 
@@ -390,8 +390,11 @@ def fill_all_scores_par( clust ):
 ## Now this only sends over k to the children; clusters and genome_seqs, etc. are all global in childrens' namespace
 def re_meme_all_clusters_par( clusters, threads=None ):
     meme_outs = do_something_par( clusters.keys(), re_meme_par, threads=threads )
-    meme_outs = {i[0]: (i[1], i[2]) for i in xrange(len(meme_outs))}
-    return meme_outs
+    ##meme_outs = { i[0]: (i[1], i[2]) for i in meme_outs }
+    for i in meme_outs:
+        clusters[ i[0] ].meme_out = i[1]
+        clusters[ i[0] ].mast_out = i[2]
+    return clusters
 
 import meme
 def re_meme_par( clustK ):
