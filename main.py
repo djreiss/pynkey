@@ -2,29 +2,29 @@
 import datetime
 
 import pandas as pd
+from params import n_iters,nthreads
 
 def run_pynkey(iter):
-    ##global organism, n_iters, clusters, all_genes, ratios, string_net, stats_df
-
-#     n_no_improvements = 0
-#     for i=iter:n_iters
-#         iter = i
-#         (clusters, n_improvements, stats_tmp) = 
-    floc.run( globals.clusters, iter, globals.all_genes, globals.ratios, globals.string_net, globals.startTime )
-#         println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
-#         stats_df = rbind( stats_df, stats_tmp )
-#         write_table( "output/$(organism)_stats.tsv", stats_df )
-#         if isfile( "DO_SAVE" )  ## save cluster info for temporary examination of clusters (via Rscripts/clusters.R)
-#             warn( "Writing out clusters to output/$(organism)_clusters.tsv" )
-#             clusters_tab = clusters_to_dataFrame(clusters);
-#             write_table("output/$(organism)_clusters.tsv", clusters_tab)
-#         end
-#         if n_improvements <= 0 n_no_improvements += 1 else n_no_improvements = 0; end
-#         if iter > n_iters/2 && n_no_improvements > 5 break; end
-#     end
+    n_no_improvements = 0
+    for i in range(iter,n_iters):
+        iter = i
+        globals.clusters, n_improvements, stats_tmp = floc.run( globals.clusters, iter, globals.all_genes, \
+                                                            globals.ratios, globals.string_net, globals.startTime )
+        ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
+        globals.stats_df = globals.stats_df.append( stats_tmp )
+        ##write_table( "output/$(organism)_stats.tsv", stats_df )
+        ##if isfile( "DO_SAVE" ): ## save cluster info for temp. examination of clusters
+        ##    warn( "Writing out clusters to output/$(organism)_clusters.tsv" )
+        ##    clusters_tab = clusters_to_dataFrame(clusters);
+        ##    write_table("output/$(organism)_clusters.tsv", clusters_tab)
+        if n_improvements <= 0:
+            n_no_improvements += 1
+        else:
+            n_no_improvements = 0
+        if iter > n_iters/2 and n_no_improvements > 5:
+            break
     globals.iter = iter + 1
     return globals.iter
-# end
 
 if __name__ == '__main__':
     import globals ## this does the initialization
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     #clusters = fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
     ## weird - if I move this to globals.py, then it gets locked up.
-    globals.clusters = fill_all_cluster_scores_par(globals.clusters)
+    globals.clusters = fill_all_cluster_scores_par(globals.clusters, threads=nthreads)
 
     # NOTE: run_pynkey() which calls floc.get_floc_scores_all() fills all the cluster scores at the beginning    
     globals.iter = run_pynkey(globals.iter) ## Note this function can be run like this to restart from current iter

@@ -30,8 +30,8 @@ def re_meme_bicluster( k, seqs, n_motifs, allSeqs_fname, motif_width_range, verb
     mast_out = pd.DataFrame()
     try:
         ns = seqs.shape[0] 
-        if verbose:
-            print 'IN HERE: MOT', k, ns, n_motifs
+        ##if verbose:
+        print 'IN HERE: MOT', k, ns, n_motifs
         meme_out = do_meme( seqs, motif_width_range, n_motifs, verbose )
         if meme_out != "": # NOTE for now if meme fails (most often b/c too few seqs) just keep the previous run
             try:

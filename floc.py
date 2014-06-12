@@ -7,22 +7,22 @@ from numpy import nan as NA
 
 import utils as ut
 import scores
-from Bicluster import bicluster ##,fill_all_cluster_scores_par,re_meme_all_clusters_par
+from Bicluster import bicluster ##,fill_all_cluster_scores_par
 import Bicluster as bic
 import funcs
 import meme
-from params import n_iters
+from params import n_iters,nthreads
 
 print 'importing floc'
 
 ## Get gain scores for all possible row/col moves
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
-def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999):  ## 5, 20)
+def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max_col=20):  ## 9999, 9999
     ## First, collate move scores into a single DataFrame for stochastic sorting
     ## Use pd.DataFrame for scores rather than matrix
 
     ##bicluster.fill_all_cluster_scores(clusters, all_genes, ratios, string_net, ratios.columns.values)
-    clusters = bic.fill_all_cluster_scores_par(clusters, threads=15)
+    clusters = bic.fill_all_cluster_scores_par(clusters, threads=nthreads)
 
     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
     tmp = [ clusters[k].get_floc_scoresDF_rows(iter, all_genes, ratios, counts_g) for k in clusters ]
@@ -165,7 +165,7 @@ def rnd_bubblesort3( scores, Nrepeats=None ): ## make sure scores is a copy, b/c
     return ords
 
 # ## TODO: add max_improvements param (to prevent really fast optimization at beginning before motifing turns on)
-def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25):
+def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=250):
 
     scores_all = get_scores_all(clusters, iter, all_genes, ratios, string_net)
 
@@ -175,8 +175,8 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
     ##    which to perform the moves.
     ## Note this is wrong right now - it sorts ALL k scores for each row/col. 
     ##  Need to just use the BEST score for each row/col and then bubblesort these.
-    ord = rnd_bubblesort3( scores_all2['combined'].values.copy() ) ##, n_sort_iter)  ## copied b/c it replaces NaNs
-    print scores_all2.ix[ord,:].head(); print scores_all2.ix[ord,:].tail()
+    ord = rnd_bubblesort3( scores_all2['combined'].values ) ##, n_sort_iter)
+    ##print scores_all2.ix[ord,:].head(); print scores_all2.ix[ord,:].tail()
 
     new_clusters = saved_clusters = funcs.copy_clusters( clusters, deep=True ) ## make a copy for updating
     ## don't need to update n or m scores if their weights are 0:
@@ -207,6 +207,7 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
         elif sc.is_row_col == 'c':
             cc.cols = cc.cols[ cc.cols != row_col ] if sc.is_in else np.append( cc.cols, row_col )
             cc.changed[1] = True
+
         cc.resid = cc.compute_residue( ratios )
         all_resids[kUpd] = cc.resid
         if sc.is_row_col == 'r':  ## Only update network/motif scores if it's a row, duh!
@@ -254,11 +255,14 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
             break
     return (saved_clusters, n_improvements, n_tries, scores_all2.ix[ord,:])
 
+import globals
+
 def run(clusters, iter, all_genes, ratios, string_net, startTime):
     ##clusters = fill_cluster_scores(clusters) ## dont need this since each clust's scores are updated in floc.update
     ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) -- 
     ##    may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high
     clusters, n_improvements, n_tries, scores_all = update(clusters, iter, all_genes, ratios, string_net)
+
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
     weight_r_new, weight_n_new, weight_m_new, weight_c_new, weight_v_new, weight_g_new = \
         scores.get_score_weights( iter + 1, ratios )
@@ -276,27 +280,27 @@ def run(clusters, iter, all_genes, ratios, string_net, startTime):
     ## First, do the meme/mast-ing in parallel (only if m0 > 0)
     ## avoid meme-ing 0-gene clusters
     clusters = funcs.re_seed_all_clusters_if_necessary(clusters, ratios, all_genes, min_rows=3, max_rows=80 )
-    if weight_m > 0:
+#    if weight_m > 0:
         ##if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
         ##else clusters = re_meme_all_biclusters_parallel(clusters, false); end
-        clusters = bic.re_meme_all_clusters_par( clusters )
+#        clusters = bic.re_meme_all_clusters_par( clusters )
 
     ## Next fill the clusters' scores (in parallel)
 #     if nprocs() <= 1 clusters = fill_all_cluster_scores( clusters, false, false );
 #     else clusters = fill_all_cluster_scores_parallel( clusters, false, false ); end
-    clusters = bic.fill_all_cluster_scores_par(clusters)
+
+    globals.clusters = clusters ## need to do this before the parallelized call:
+    clusters = bic.fill_all_cluster_scores_par(clusters, threads=nthreads)
     print 'ITER:', iter
     print 'r0: %.3f; n0: %.3f; m0: %.3f; c0: %.3f; v0: %.3f, g0: %.3f' % ( weight_r, weight_n, weight_m, 
                                                                            weight_c, weight_v, weight_g )
     print 'N_MOVES:', n_tries
     print 'N_IMPROVEMENTS:', n_improvements
     stats_df = funcs.print_cluster_stats(clusters, ratios, iter, startTime )
-#     stats_df['N_MOVES'] = n_tries
-#     stats_df['N_IMPROVEMENTS'] = n_improvements
-#     stats_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
-#     stats_df['N_CLUSTS_CHANGED_COLS'] = changed_cols
-#     print 'N_CLUSTS_CHANGED (ROWS): ', stats_df['N_CLUSTS_CHANGED_ROWS'] )
-#     print 'N_CLUSTS_CHANGED (COLS): ', stats_df['N_CLUSTS_CHANGED_COLS'] )
-#     gc()
-#     (clusters, n_improvements, stats_df)
-# end
+    stats_df['N_MOVES'] = n_tries
+    stats_df['N_IMPROVEMENTS'] = n_improvements
+    stats_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
+    stats_df['N_CLUSTS_CHANGED_COLS'] = changed_cols
+    print 'N_CLUSTS_CHANGED (ROWS): ', stats_df.N_CLUSTS_CHANGED_ROWS[0]
+    print 'N_CLUSTS_CHANGED (COLS): ', stats_df.N_CLUSTS_CHANGED_COLS[0]
+    return (clusters, n_improvements, stats_df)

@@ -16,10 +16,13 @@ import multiprocessing as mp
 print 'importing utils'
 
 def do_something_par( items, func, threads=None ): # None ensures that it makes as many threads as avail. in computer
-    pool = mp.Pool(processes=threads)              # start 4 worker processes
-    ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
-    out = pool.map(func, items)
-    pool.terminate()
+    if threads == 1:
+        out = map(func, items)
+    else:
+        pool = mp.Pool(processes=threads)              # start 4 worker processes
+        ## Need to send, e.g. a tuple (1, counts_g) if fill_all_scores_par() took multiple args
+        out = pool.map(func, items)
+        pool.terminate()
     return out
 
 def writeLines( lines, fname=None ):

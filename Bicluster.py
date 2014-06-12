@@ -12,8 +12,7 @@ from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/color
 import scores
 import funcs
 import params
-import globals
-from utils import slice_sampler, do_something_par
+import utils as ut ##slice_sampler, do_something_par
 import sequence as seq
 import meme
 
@@ -297,14 +296,14 @@ class bicluster:
         if len(self.rows) < min_rows:
             counts_g = np.max(counts_g) + 0.01 - counts_g
             counts_g = counts_g / np.max(counts_g)
-            self.rows = g[ np.unique( slice_sampler( counts_g, 5 ) ) ]
+            self.rows = g[ np.unique( ut.slice_sampler( counts_g, 5 ) ) ]
             ## add x/3 random cols
             self.cols = np.sort(np.unique(np.concatenate( (self.cols, \
                                                            ratios.columns.values[ rand.choice(ratios.shape[1], \
                                                            ratios.shape[1]/3-len(self.cols), replace=False) ] )), 0))
         elif len(self.rows) > max_rows:
             counts_g = ( counts_g + 0.01 ) / ( np.max(counts_g) + 0.01 )
-            tmp_rows = g[np.in1d(g,self.rows)][ np.unique( slice_sampler( counts_g[np.in1d(g,self.rows)], 
+            tmp_rows = g[np.in1d(g,self.rows)][ np.unique( ut.slice_sampler( counts_g[np.in1d(g,self.rows)], 
                                                                         len(self.rows)-max_rows+1 ) ) ]
             self.rows = self.rows[ np.logical_not( np.in1d(self.rows, tmp_rows) ) ]
         return self
@@ -323,25 +322,6 @@ class bicluster:
                 d[r] += 1
         return d
 
-    ## THis is a static function so outside the definition of the bicluster
-    @staticmethod
-    def fill_all_cluster_scores(clusters, iter, all_genes, ratios, string_net, all_conds):
-        counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
-        for k in clusters:
-            print 'FILL: %s' % k
-            clusters[k].fill_all_scores(iter, all_genes, ratios, string_net, counts_g, ratios.columns.values)
-        return clusters
-
-    ## THis is a static function so outside the definition of the bicluster
-    @staticmethod
-    def re_meme_all_clusters(clusters, distance_search, allSeqs_fname, anno, genome_seqs, op_table, 
-                             motif_width_range, n_motifs=2 ): 
-        for k in clusters:
-            print 'MEME: %s' % k
-            clusters[k].re_meme( distance_search, allSeqs_fname, anno, genome_seqs, op_table, 
-                                 motif_width_range, n_motifs )
-        return clusters
-
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     @staticmethod
     def get_cluster_row_count_scores( counts_g ):
@@ -354,6 +334,25 @@ class bicluster:
     def get_update_scores( cluster, update_func, *args ):
         print args
         return update_func( cluster, *args )
+
+    ## THis is a static function so outside the definition of the bicluster
+    # @staticmethod
+    # def fill_all_cluster_scores(clusters, iter, all_genes, ratios, string_net, all_conds):
+    #     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
+    #     for k in clusters:
+    #         print 'FILL: %s' % k
+    #         clusters[k].fill_all_scores(iter, all_genes, ratios, string_net, counts_g, ratios.columns.values)
+    #     return clusters
+
+    ## THis is a static function so outside the definition of the bicluster
+    # @staticmethod
+    # def re_meme_all_clusters(clusters, distance_search, allSeqs_fname, anno, genome_seqs, op_table, 
+    #                          motif_width_range, n_motifs=2 ): 
+    #     for k in clusters:
+    #         print 'MEME: %s' % k
+    #         clusters[k].re_meme( distance_search, allSeqs_fname, anno, genome_seqs, op_table, 
+    #                              motif_width_range, n_motifs )
+    #     return clusters
 
 ##################################
 ## Note this works from ipython shell, but NOT as called in floc.get_floc_scores_all()
@@ -375,33 +374,44 @@ class bicluster:
     #     clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
     #     return clust
 
+import globals
+
 def fill_all_cluster_scores_par( clusters, threads=None ):
     ## Clusters per gene counts - precompute:
     globals.counts_g = bicluster.get_all_cluster_row_counts( clusters, globals.all_genes )
-    clusters = do_something_par( clusters.values(), fill_all_scores_par, threads=threads )
+    clusters = ut.do_something_par( clusters.values(), fill_all_scores_par, threads=threads )
     clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
     return clusters
 
 ## Keep everything global so it doesn't need to be sent to each child.
 def fill_all_scores_par( clust ):
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( globals.iter, 
+                                                                                           globals.ratios )
+    was_changed = clust.changed[0]
     clust.fill_all_scores(globals.iter, globals.all_genes, globals.ratios, globals.string_net, globals.counts_g, 
                           globals.ratios.columns.values)
+    if weight_m > 0 and was_changed:
+        n_mots = meme.get_n_motifs( globals.iter, params.n_iters )
+        clust.re_meme( params.distance_search, globals.allSeqs_fname, globals.anno, globals.genome_seqs, 
+                       globals.op_table, params.motif_width_range, n_motifs=n_mots )
     return clust
 
 ## Now this only sends over k to the children; clusters and genome_seqs, etc. are all global in childrens' namespace
-def re_meme_all_clusters_par( clusters, threads=None ):
-    meme_outs = do_something_par( clusters.keys(), re_meme_par, threads=threads )
-    ##meme_outs = { i[0]: (i[1], i[2]) for i in meme_outs }
-    for i in meme_outs:
-        clusters[ i[0] ].meme_out = i[1]
-        clusters[ i[0] ].mast_out = i[2]
-    return clusters
+# def re_meme_all_clusters_par( clusters, threads=None ):
+#     meme_outs = do_something_par( clusters.keys(), re_meme_par, threads=threads )
+#     ##meme_outs = { i[0]: (i[1], i[2]) for i in meme_outs }
+#     for i in meme_outs:
+#         clusters[ i[0] ].meme_out = i[1]
+#         clusters[ i[0] ].mast_out = i[2]
+#     return clusters
 
-import meme
-def re_meme_par( clustK ):
-    n_motifs = meme.get_n_motifs( globals.iter, params.n_iters )
-    clust = globals.clusters[ clustK ]
-    seqs = clust.get_sequences( globals.anno, globals.genome_seqs, globals.op_table, params.distance_search, do_filter=True )
-    k, meme_out, mast_out = meme.re_meme_bicluster( clustK, seqs, n_motifs, globals.allSeqs_fname, 
-                                                    params.motif_width_range, verbose=False )
-    return (k, meme_out, mast_out)
+# def re_meme_par( clustK ):
+#     n_motifs = meme.get_n_motifs( globals.iter, params.n_iters )
+#     clust = globals.clusters[ clustK ]
+#     if not clust.changed[0]:
+#         return (clustK, clust.meme_out, clust.mast_out 
+#     seqs = clust.get_sequences( globals.anno, globals.genome_seqs, globals.op_table, params.distance_search, 
+#                                 do_filter=True )
+#     k, meme_out, mast_out = meme.re_meme_bicluster( clustK, seqs, n_motifs, globals.allSeqs_fname, 
+#                                                     params.motif_width_range, verbose=False )
+#     return (k, meme_out, mast_out)

@@ -4,6 +4,8 @@ import datetime
 import numpy as np
 import pandas as pd
 
+import scores
+
 print 'importing funcs'
 
 def copy_clusters( clusters, deep=True ):
@@ -51,55 +53,55 @@ def subnetwork_density( rows, network, already_subnetted=False ):
     dens = float(np.sum( net2.weight )) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
     return np.log10( dens+1e-9 )
 
+from collections import Counter
+import resource
+
 def print_cluster_stats( clusters, ratios, iter, startTime ):
     time_elapsed = datetime.datetime.now() - startTime ## seconds
 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
 
-    out_df = DataFrame( { 'iter': iter, 'time': time_elapsed, ##'mem_used': tmp, 
-                          'r0': weight_r, 'n0': weight_n, 'm0': weight_m, 
-                          'c0': weight_c, 'v0': weight_v } )
+    ## To get memory used -- TODO: get this during MEME running (that's when max RAM is used) 
+#     tmp = split( readall(`ps -U dreiss -o rss -o comm` | `grep -E 'julia|meme|mast'` | `awk '{print $1}'`), '\n' )
+#     tmp = sum([ parse_int(tmp[i]) for i=1:(length(tmp)-1) ])
+    ## see: https://stackoverflow.com/questions/938733/total-memory-used-by-python-process
+    tmp = ( resource.getrusage(resource.RUSAGE_SELF).ru_maxrss + \
+        resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss ) / 1024 ## in MB
+
+    out_df = pd.DataFrame( { 'iter': [iter], 'time': [time_elapsed], 'mem_used': tmp, 
+                          'r0': [weight_r], 'n0': [weight_n], 'm0': [weight_m], 
+                          'c0': [weight_c], 'v0': [weight_v] } )
     tmp = np.array([len(clusters[k].rows) for k in xrange(len(clusters))])
     out_df['ROWS'] = np.nanmean(tmp)
-    print 'ROWS:', out_df.ROWS, ' +/- ', np.nanstd(tmp)
+    print 'ROWS:', out_df.ROWS[0], ' +/- ', np.nanstd(tmp)
     tmp = np.array([len(clusters[k].cols) for k in xrange(len(clusters))])
     out_df['COLS'] = np.nanmean(tmp)
-    print 'COLS:', out_df.COLS, ' +/- ', np.nanstd(tmp)
+    print 'COLS:', out_df.COLS[0], ' +/- ', np.nanstd(tmp)
     tmp = np.array([clusters[k].resid for k in xrange(len(clusters))])
     out_df['RESID'] = np.nanmean(tmp)
-    print 'MEAN RESID:', out_df.RESID, ' +/- ', np.nanstd(tmp)
+    print 'MEAN RESID:', out_df.RESID[0], ' +/- ', np.nanstd(tmp)
     tmp = np.array([clusters[k].dens_string for k in xrange(len(clusters))])
     out_df['STRING_DENS'] = np.nanmean(tmp)
-    print 'MEAN STRING DENS:', out_df.STRING_DENS, ' +/- ', nansd(tmp)
+    print 'MEAN STRING DENS:', out_df.STRING_DENS[0], ' +/- ', np.nanstd(tmp)
     tmp = np.array([clusters[k].meanp_meme for k in xrange(len(clusters))])
     out_df['MEME_PVAL'] = np.nanmean(tmp)
-    print 'MEAN MEME LOG10(P-VAL):', out_df.MEME_PVAL, ' +/- ', nansd(tmp)
-#     rows = 0; for k in 1:k_clust rows = [rows, clusters[k].rows]; end
-#     tmp = np.array(collect(values(table(rows))))
-#     out_df['CLUSTS_PER_ROW'] = nanmean(tmp)
-#     print 'CLUSTS PER ROW:', out_df['CLUSTS_PER_ROW'][1], ' +/- ', nansd(tmp) )
-#     cols = 0; for k in 1:k_clust cols = [cols, clusters[k].cols]; end
-#     tmp = np.array(collect(values(table(cols))))
-#     out_df['CLUSTS_PER_COL'] = nanmean(tmp)
-#     print 'CLUSTS PER COL:', out_df['CLUSTS_PER_COL'][1], ' +/- ', nansd(tmp) )
+    print 'MEAN MEME LOG10(P-VAL):', out_df.MEME_PVAL[0], ' +/- ', np.nanstd(tmp)
+    rows = clusters[0].rows
+    for k in range(1,len(clusters)):
+        rows = np.append(rows, clusters[k].rows)
+    c = Counter(rows)
+    tmp = np.array(c.values())
+    out_df['CLUSTS_PER_ROW'] = np.nanmean(tmp)
+    print 'CLUSTS PER ROW:', out_df.CLUSTS_PER_ROW[0], ' +/- ', np.nanstd(tmp)
+    cols = clusters[0].cols
+    for k in range(1,len(clusters)):
+        cols = np.append(cols, clusters[k].cols)
+    c = Counter(cols)
+    tmp = np.array(c.values())
+    out_df['CLUSTS_PER_COL'] = np.nanmean(tmp)
+    print 'CLUSTS PER COL:', out_df.CLUSTS_PER_COL[0], ' +/- ', np.nanstd(tmp)
 
-#     ## To get memory used -- DONE: add this to the stats_df; TODO: get this during MEME running (that's when max RAM is used) 
-#     ## ps -U dreiss --no-headers -o rss -o comm | grep -E 'julia|meme|mast' | awk '{print $1}' | ( tr '\n' + ; echo 0 ) | bc
-#     if OS_NAME != :Darwin
-#         tmp = 0
-#         try ## this command doesnt work on osiris although it works on fossil... weird
-#             tmp = split( readall(`ps -U dreiss --no-headers -o rss -o comm` | `grep -E 'julia|meme|mast'` | `awk '{print $1}'`), '\n' )
-#             tmp = sum([ parse_int(tmp[i]) for i=1:(length(tmp)-1) ])
-#         catch
-#             tmp = 0
-#         end
-#     else
-#         tmp = split( readall(`ps -U dreiss -o rss -o comm` | `grep -E 'julia|meme|mast'` | `awk '{print $1}'`), '\n' )
-#         tmp = sum([ parse_int(tmp[i]) for i=1:(length(tmp)-1) ])
-#     end
-
-#     out_df
-# end
+    return out_df
 
 # function clusters_to_dataFrame( clusters::Dict{Int64,bicluster} )
 #     out = Array(DataFrame,length(clusters))

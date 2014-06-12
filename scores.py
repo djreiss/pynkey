@@ -16,13 +16,13 @@ def get_score_weights(iter, ratios):
     mn = params.max_network_weight
     mm = params.max_motif_weight
     nit = params.n_iters
-    weight_r =  1.0
-    weight_n =  0.0 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
-    weight_m =  1.0 +  mm * float(iter-1) / nit * (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
-    weight_c =  0.0 + 0.2 * np.size(ratios,0)/np.size(ratios,1)/12.0 ## ??? ## 1.2 works good for hpy
-    weight_v =  0.1 + 0.3 * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
-    weight_g =  0.1 + 0.1 * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
-    return weight_r, weight_n, weight_m, weight_c, weight_v, weight_g
+    weight_r =   1.0
+    weight_n =   0.0 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
+    weight_m =  (1.0 +  mm * float(iter-1) / nit) * (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
+    weight_c =   0.0 + 0.2 * np.size(ratios,0)/np.size(ratios,1)/12.0 ## ??? ## 1.2 works good for hpy
+    weight_v =   0.1 + 0.3 * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
+    weight_g =   0.1 + 0.1 * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
+    return (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g)
 
 ## TODO: use numexpr to speed up and avoid temporary array creation
 ## also use array.fill(0) to reset to zero without recreating a new array
