@@ -1,4 +1,5 @@
 import warnings
+import datetime
 
 import numpy as np
 import pandas as pd
@@ -51,7 +52,7 @@ def subnetwork_density( rows, network, already_subnetted=False ):
     return np.log10( dens+1e-9 )
 
 def print_cluster_stats( clusters, ratios, iter, startTime ):
-    time_elapsed = (time() - startTime)/60
+    time_elapsed = datetime.datetime.now() - startTime ## seconds
 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
 
