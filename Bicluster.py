@@ -306,7 +306,7 @@ class bicluster:
             counts_g = ( counts_g + 0.01 ) / ( np.max(counts_g) + 0.01 )
             tmp_rows = g[np.in1d(g,self.rows)][ np.unique( slice_sampler( counts_g[np.in1d(g,self.rows)], 
                                                                         len(self.rows)-max_rows+1 ) ) ]
-            self.rows = self.rows[ np.logical_not( in1d(self.rows, tmp_rows) ) ]
+            self.rows = self.rows[ np.logical_not( np.in1d(self.rows, tmp_rows) ) ]
         return self
 
     @staticmethod
