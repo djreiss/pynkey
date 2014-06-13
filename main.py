@@ -2,6 +2,7 @@
 import datetime
 
 import pandas as pd
+import numpy as np
 from params import n_iters,nthreads
 
 def run_pynkey(iter):

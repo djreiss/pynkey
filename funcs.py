@@ -84,6 +84,7 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
     out_df['STRING_DENS'] = np.nanmean(tmp)
     print 'MEAN STRING DENS:', out_df.STRING_DENS[0], ' +/- ', np.nanstd(tmp)
     tmp = np.array([clusters[k].meanp_meme for k in xrange(len(clusters))])
+    tmp[ np.isinf(tmp) ] = np.nan
     out_df['MEME_PVAL'] = np.nanmean(tmp)
     print 'MEAN MEME LOG10(P-VAL):', out_df.MEME_PVAL[0], ' +/- ', np.nanstd(tmp)
     rows = clusters[0].rows
