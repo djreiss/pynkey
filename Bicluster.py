@@ -374,26 +374,25 @@ class bicluster:
     #     clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
     #     return clust
 
-import globals
+import globals as glb
 
 def fill_all_cluster_scores_par( clusters, threads=None ):
     ## Clusters per gene counts - precompute:
-    globals.counts_g = bicluster.get_all_cluster_row_counts( clusters, globals.all_genes )
+    glb.counts_g = bicluster.get_all_cluster_row_counts( clusters, glb.all_genes )
     clusters = ut.do_something_par( clusters.values(), fill_all_scores_par, threads=threads )
     clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
     return clusters
 
 ## Keep everything global so it doesn't need to be sent to each child.
 def fill_all_scores_par( clust ):
-    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( globals.iter, 
-                                                                                           globals.ratios )
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( glb.iter, glb.ratios )
     was_changed = clust.changed[0]
-    clust.fill_all_scores(globals.iter, globals.all_genes, globals.ratios, globals.string_net, globals.counts_g, 
-                          globals.ratios.columns.values)
+    clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, glb.counts_g, 
+                          glb.ratios.columns.values)
     if weight_m > 0 and was_changed:
-        n_mots = meme.get_n_motifs( globals.iter, params.n_iters )
-        clust.re_meme( params.distance_search, globals.allSeqs_fname, globals.anno, globals.genome_seqs, 
-                       globals.op_table, params.motif_width_range, n_motifs=n_mots )
+        n_mots = meme.get_n_motifs( glb.iter, params.n_iters )
+        clust.re_meme( params.distance_search, glb.allSeqs_fname, glb.anno, glb.genome_seqs, 
+                       glb.op_table, params.motif_width_range, n_motifs=n_mots )
     return clust
 
 ## Now this only sends over k to the children; clusters and genome_seqs, etc. are all global in childrens' namespace
@@ -406,12 +405,12 @@ def fill_all_scores_par( clust ):
 #     return clusters
 
 # def re_meme_par( clustK ):
-#     n_motifs = meme.get_n_motifs( globals.iter, params.n_iters )
-#     clust = globals.clusters[ clustK ]
+#     n_motifs = meme.get_n_motifs( glb.iter, params.n_iters )
+#     clust = glb.clusters[ clustK ]
 #     if not clust.changed[0]:
 #         return (clustK, clust.meme_out, clust.mast_out 
-#     seqs = clust.get_sequences( globals.anno, globals.genome_seqs, globals.op_table, params.distance_search, 
+#     seqs = clust.get_sequences( glb.anno, glb.genome_seqs, glb.op_table, params.distance_search, 
 #                                 do_filter=True )
-#     k, meme_out, mast_out = meme.re_meme_bicluster( clustK, seqs, n_motifs, globals.allSeqs_fname, 
+#     k, meme_out, mast_out = meme.re_meme_bicluster( clustK, seqs, n_motifs, glb.allSeqs_fname, 
 #                                                     params.motif_width_range, verbose=False )
 #     return (k, meme_out, mast_out)

@@ -154,9 +154,9 @@ def load_string_net(organism):
     string_net = pd.read_table(string_file, compression='gzip', names=['protein1','protein2','weight'], index_col='protein1') 
 
     ## Symmetrize it? -- no, seems to already be done.
-#   tmp = pd.concat([string_net.ix[:,1], string_net.ix[:,0], string_net.ix[:,2]], axis=1)
+#   tmp = pd.concat([string_net.ix[:,1], string_net.ix[:,0], string_net.ix[:,2]], axis=1, ignore_index=True)
 #   tmp.columns = tmp.columns[[1,0,2]] ## reorder the columns to the same as string_net
-#   string_net = pd.concat( [string_net, tmp] )
+#   string_net = pd.concat( [string_net, tmp], ignore_index=True )
 
     print string_net.shape
     return string_net

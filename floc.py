@@ -12,12 +12,13 @@ import Bicluster as bic
 import funcs
 import meme
 from params import n_iters,nthreads
+import globals as glb
 
 print 'importing floc'
 
 ## Get gain scores for all possible row/col moves
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
-def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max_col=20):  ## 9999, 9999
+def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999): ##5, max_col=20):
     ## First, collate move scores into a single DataFrame for stochastic sorting
     ## Use pd.DataFrame for scores rather than matrix
 
@@ -26,7 +27,7 @@ def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max
 
     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes ) ## Clusters per gene counts - precompute
     tmp = [ clusters[k].get_floc_scoresDF_rows(iter, all_genes, ratios, counts_g) for k in clusters ]
-    scoresDF_r = pd.concat(tmp) ## This is much faster than mapreduce() above!!!
+    scoresDF_r = pd.concat(tmp, ignore_index=True)
     del tmp
 
     ## STANDARDIZE ROWS AND COLUMNS SEPARATELY!!!   -- is this really what we want?
@@ -35,7 +36,7 @@ def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max
     scoresDF_r['combined'] = pd.Series(tmp1)
 
     tmp = [ clusters[k].get_floc_scoresDF_cols(iter, ratios) for k in clusters ]
-    scoresDF_c = pd.concat(tmp) ## This is much faster than mapreduce()
+    scoresDF_c = pd.concat(tmp, ignore_index=True) ## This is much faster than mapreduce()
     del tmp
 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
@@ -50,7 +51,7 @@ def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max
         shrunk_r = [pd.DataFrame() for i in range(len(tmp_r))]
         for i in range(len(tmp_r)):
             shrunk_r[i] = tmp_r[i].sort( 'combined' )[ 0:max_row ]
-        scoresDF_r = pd.concat( shrunk_r )
+        scoresDF_r = pd.concat( shrunk_r, ignore_index=True )
 
     if max_col < 9999:
         tmp_c = scoresDF_c.groupby( 'k' )
@@ -58,9 +59,9 @@ def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max
         shrunk_c = [pd.DataFrame() for i in range(len(tmp_c))]
         for i in range(len(tmp_c)):
             shrunk_c[i] = tmp_c[i].sort( 'combined' )[ 0:max_col ]
-        scoresDF_c = pd.concat( shrunk_c )
+        scoresDF_c = pd.concat( shrunk_c, ignore_index=True )
 
-    all_scores = pd.concat([scoresDF_r, scoresDF_c])
+    all_scores = pd.concat([scoresDF_r, scoresDF_c], ignore_index=True)
     return all_scores
 
 # ## Instead of scores for ALL possible moves, make a matrix of n_best best scores for each row/col
@@ -81,7 +82,7 @@ def get_scores_best( all_scores, n_best_row=3, n_best_col=3 ):
             tmp2a = tmp2.sort( 'combined' )[ 0:n_best_col ]
             dfs_c[r] = tmp2a
 
-    scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ] )
+    scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ], ignore_index=True )
     return scores_out
 
 ## Native code: 119s
@@ -255,13 +256,12 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
             break
     return (saved_clusters, n_improvements, n_tries, scores_all2.ix[ord,:])
 
-import globals
-
-def run(clusters, iter, all_genes, ratios, string_net, startTime):
+def run(clusters, iter, all_genes, ratios, string_net):
     ##clusters = fill_cluster_scores(clusters) ## dont need this since each clust's scores are updated in floc.update
     ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) -- 
     ##    may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high
     clusters, n_improvements, n_tries, scores_all = update(clusters, iter, all_genes, ratios, string_net)
+    glb.clusters = clusters
 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
     weight_r_new, weight_n_new, weight_m_new, weight_c_new, weight_v_new, weight_g_new = \
@@ -280,23 +280,15 @@ def run(clusters, iter, all_genes, ratios, string_net, startTime):
     ## First, do the meme/mast-ing in parallel (only if m0 > 0)
     ## avoid meme-ing 0-gene clusters
     clusters = funcs.re_seed_all_clusters_if_necessary(clusters, ratios, all_genes, min_rows=3, max_rows=80 )
-#    if weight_m > 0:
-        ##if nprocs() <= 1 clusters = re_meme_all_biclusters(clusters, false)
-        ##else clusters = re_meme_all_biclusters_parallel(clusters, false); end
-#        clusters = bic.re_meme_all_clusters_par( clusters )
-
-    ## Next fill the clusters' scores (in parallel)
-#     if nprocs() <= 1 clusters = fill_all_cluster_scores( clusters, false, false );
-#     else clusters = fill_all_cluster_scores_parallel( clusters, false, false ); end
-
-    globals.clusters = clusters ## need to do this before the parallelized call:
+    glb.clusters = clusters ## need to do this before the parallelized call:
     clusters = bic.fill_all_cluster_scores_par(clusters, threads=nthreads)
+    glb.clusters = clusters
     print 'ITER:', iter
     print 'r0: %.3f; n0: %.3f; m0: %.3f; c0: %.3f; v0: %.3f, g0: %.3f' % ( weight_r, weight_n, weight_m, 
                                                                            weight_c, weight_v, weight_g )
     print 'N_MOVES:', n_tries
     print 'N_IMPROVEMENTS:', n_improvements
-    stats_df = funcs.print_cluster_stats(clusters, ratios, iter, startTime )
+    stats_df = funcs.print_cluster_stats(clusters, ratios, iter, glb.startTime )
     stats_df['N_MOVES'] = n_tries
     stats_df['N_IMPROVEMENTS'] = n_improvements
     stats_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
