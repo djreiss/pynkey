@@ -6,8 +6,10 @@
 ## TODO: Load and use other networks (with their respective scores)
 
 import numpy as np
+import pandas as pd
 
 import params
+import utils as ut
 
 ## Note can make these weights a global var and update them in this function.
 ## Just need to define them as global IN the function
@@ -27,26 +29,30 @@ def get_score_weights(iter, ratios):
 ## TODO: use numexpr to speed up and avoid temporary array creation
 ## also use array.fill(0) to reset to zero without recreating a new array
 ## scores_DF has columns ['score_r', 'score_n', 'score_m', 'score_c', 'score_v', 'score_g']
-def get_combined_scores( scores_DF, iter, ratios ): 
+def get_combined_scores( scores_DF, iter, ratios, do_stdize=True ): 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = get_score_weights( iter, ratios )
+    wts = pd.Series( [weight_r, weight_n, weight_m, weight_c, weight_v, weight_g], 
+                     index=['score_r', 'score_n', 'score_m', 'score_c', 'score_v', 'score_g'] )
 
     df = scores_DF
     nr = df.shape[0]
-    ## Need to standardize each scores column first
     out = np.zeros( nr )
-    out[ np.invert(np.isnan(df.score_r.values)) ] += weight_r * df.score_r[ np.invert(np.isnan(df.score_r.values)) ]
     tmp = np.zeros_like( scores_DF.score_n )
-    tmp[ np.invert(np.isnan(df.score_n.values)) ] += weight_n * df.score_n[ np.invert(np.isnan(df.score_n.values)) ]
-    out += tmp
-    tmp[:] = 0
-    tmp[ np.invert(np.isnan(df.score_m.values)) ] += weight_m * df.score_m[ np.invert(np.isnan(df.score_m.values)) ]
-    out += tmp
-    tmp[:] = 0
-    tmp[ np.invert(np.isnan(df.score_v.values)) ] += weight_v * df.score_v[ np.invert(np.isnan(df.score_v.values)) ]
-    out += tmp
-    tmp[:] = 0
-    tmp[ np.invert(np.isnan(df.score_g.values)) ] += weight_g * df.score_g[ np.invert(np.isnan(df.score_g.values)) ]
-    out += tmp
+
+    for name in ['score_r', 'score_m', 'score_n', 'score_v', 'score_g']:  ## TBD: what about score_c ??
+        wt = wts[name]
+        if abs(wt) < 1e-5:
+            continue
+        scor = df[name].values
+        isnans = np.isnan(scor)
+        if np.all(isnans):
+            continue
+        if do_stdize:     ## Need to standardize each score first
+            scor = ut.sdize_vector(scor)
+        out[ ~isnans ] += wt * scor[ ~isnans ]
+
+    if do_stdize:
+        out = ut.sdize_vector(out)
     return out
 
 def get_combined_score( r, n, m, v, g, iter, ratios ):

@@ -71,11 +71,15 @@ def slice_sampler(px, N = 1, x = None):
         return values[0]
     return values
 
-def sdize_vector( vec ):
-    v = vec[ vec != 0 ]
+def sdize_vector( vec, ignore_zeroes=True ): ## note this is inplace! If don't want, pass vec.copy() !!
+    v = vec
+    if ignore_zeroes:
+        v = vec[ vec != 0 ]
     mn = np.nanmean( v )
     sd = np.nanstd( v )
-    return (vec - mn) / ( sd + 0.001 )
+    vec -= mn
+    vec /= (sd + 0.001) ## try to minimize copies?
+    return vec
 
 def minmax( vec ):
     return (np.nanmin(vec), np.nanmax(vec))
