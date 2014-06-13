@@ -8,6 +8,7 @@ def run_pynkey(iter):
     n_no_improvements = 0
     for i in range(iter,n_iters):
         iter = i
+        glb.iter = iter
         clusters, n_improvements, stats_tmp = floc.run( glb.clusters, iter, glb.all_genes, glb.ratios, glb.string_net )
         glb.clusters = clusters
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
@@ -21,9 +22,9 @@ def run_pynkey(iter):
             n_no_improvements += 1
         else:
             n_no_improvements = 0
-        if iter > n_iters/2 and n_no_improvements > 5:
+        n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )
+        if n_changed <= 10 and iter > n_iters/2 and n_no_improvements > 5:
             break
-    glb.iter = iter + 1
     return glb.iter
 
 if __name__ == '__main__':

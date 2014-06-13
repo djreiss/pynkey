@@ -301,11 +301,13 @@ class bicluster:
             self.cols = np.sort(np.unique(np.concatenate( (self.cols, \
                                                            ratios.columns.values[ rand.choice(ratios.shape[1], \
                                                            ratios.shape[1]/3-len(self.cols), replace=False) ] )), 0))
+            self.changed[ 0 ] = self.changed[ 1 ] = True
         elif len(self.rows) > max_rows:
             counts_g = ( counts_g + 0.01 ) / ( np.max(counts_g) + 0.01 )
             tmp_rows = g[np.in1d(g,self.rows)][ np.unique( ut.slice_sampler( counts_g[np.in1d(g,self.rows)], 
                                                                         len(self.rows)-max_rows+1 ) ) ]
             self.rows = self.rows[ np.logical_not( np.in1d(self.rows, tmp_rows) ) ]
+            self.changed[ 0 ] = True
         return self
 
     @staticmethod

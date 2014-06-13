@@ -186,6 +186,7 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
     all_resids = np.array( [ clusters[k].resid for k in clusters.keys() ] )
     all_dens_string = np.array( [ clusters[k].dens_string for k in clusters.keys() ] )
     all_meanp_meme = np.array( [ clusters[k].meanp_meme for k in clusters.keys() ] )
+    all_meanp_meme[ np.isinf( all_meanp_meme ) ] = 0
     all_volumes = np.zeros_like( all_resids )
     mean_resid = np.nanmean(all_resids)
     mean_dens_string = np.nanmean(all_dens_string) ## Should usually increase, sometimes get worse
@@ -217,7 +218,8 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
                 all_dens_string[kUpd] = cc.dens_string
             if weight_m > 0:            ## only compute if need to
                 cc.meanp_meme = cc.compute_meme_pval()
-                all_meanp_meme[kUpd] = cc.meanp_meme
+                if not np.isinf(cc.meanp_meme):
+                    all_meanp_meme[kUpd] = cc.meanp_meme
             ## TODO: incorporate score_g (nclust per gene) and score_v (ngene per clust) into combined scores
 #            if weight_g > 0:
 #                counts_gene[ row_col ] += (-1 if sc.is_in else 1) ## Clusters per gene score
