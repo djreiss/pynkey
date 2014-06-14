@@ -34,6 +34,11 @@ if __name__ == '__main__':
     from Bicluster import fill_all_cluster_scores_par
     import floc
 
+    try:
+        os.mkdir( 'output' )
+    except:
+        print 'Cannot mkdir ./output/'
+
     #clusters = fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
     ## weird - if I move this to glb.py, then it gets locked up.
     glb.clusters = fill_all_cluster_scores_par(glb.clusters, threads=nthreads)
@@ -46,32 +51,29 @@ if __name__ == '__main__':
     print str(glb.endTime)
     print str(glb.endTime - glb.startTime) + ' seconds since initialization'
 
-# kInd = 1;
-# if organism == "Hpy" || organism == "Eco" kInd = clusters_w_func("flagell", clusters)[1]; end
-# b = clusters[kInd]
-# #b = re_meme_bicluster( b );
-# print(join(b.meme_out, '\n'))
+    kInd = 1
+    if organism == 'Hpy' or organism == 'Eco':
+        kInd = funcs.clusters_w_func('flagell', clusters)[0]
 
-# try mkdir( "output" ); end
-# ## Right now this fails on the clusters if we use gzopen (open works fine, though)
+    b = clusters[kInd]
+    print b.meme_out
+
+## Right now this fails on the clusters if we use gzopen (open works fine, though)
 # save_jld( "output/$(organism)_out.jldz", (organism, k_clust, ratios, genome_seqs, anno, op_table, string_net, 
 #                                    allSeqs_fname, all_bgFreqs, startTime, endTime,
 #                                    all_genes, iter, n_iters, distance_search, distance_scan, motif_width_range,
 #                                    clusters, stats_df, junkey_code) )
 
-# clusters_tab = clusters_to_dataFrame(clusters);
-# write_table("output/$(organism)_clusters.tsv", clusters_tab) ## for examination of clusters in R (via Rscripts/clusters.R)
+    clusters_tab = clusters_to_dataFrame(clusters)
+    clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
 
-# tmp = get_cluster_row_counts(clusters);
-# println( sum(tmp.==0), " genes in no clusters" )
-# println( sum(tmp.==maximum(tmp)), " genes in ", maximum(tmp), " clusters" )
+    tmp = bicluster.get_all_cluster_row_counts( clusters, all_genes )
+    print np.sum(tmp==0), 'genes in no clusters'
+    print np.sum(tmp==np.maximum(tmp)), 'genes in', np.maximum(tmp), 'clusters'
 
 # println( @sprintf( "%.3f", (endTime - startTime)/60 ), " minutes since initialization" )
-
 
 # #genes = rownames(ratios)[clusters[kInd].rows] ##rows]
 # #seqs = get_sequences(genes);
 # #@time gibbs_out = gibbs_site_sampler(seqs[:,2])     ## run gibbs sampler on most "flagellar-enriched" cluster
 # #@time gibbs_out2 = gibbs_site_sampler(seqs, gibbs_out["pssm"])
-
-# end; ## myid() == 1

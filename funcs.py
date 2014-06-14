@@ -113,29 +113,24 @@ def clusters_to_dataFrame( clusters ):
                                 'dens_string': [b.dens_string],
                                 'meanp_meme': [b.meanp_meme],
                                 'cols': ','.join(b.cols),
-                                'meme_out': '<<<<>>>>'.join(b.meme_out) } )
+                                'meme_out': '<<<<>>>>'.join('\n'.split(b.meme_out)) } )
         out[k] = out_r
     out = pd.concat( out.values() )
     return out
 
 ## Find the flagellar cluster, whew!!!
-# function clusters_w_func( func::ASCIIString, clusters, n_best=1 )
-#     global anno, ratios
-#     inds = findn([ismatch(Regex(func),anno["desc"][i]) for i=1:size(anno,1)] .== true)
-#     r_rownames = rownames(ratios)
-#     inds2 = int32([in(r_rownames, anno["sysName"][i]) ? 
-#                    findn(r_rownames .== anno["sysName"][i])[1] : 0 for i=inds])
-#     inds2 = inds2[ inds2 .!= 0 ]
-
-#     ord = sortperm( int64([length(findin(clusters[k].rows,int64(inds2))) for k=1:length(clusters)]) )
-#     kInds = ord[ (end-n_best+1):end ] ## The n_best clusters w/ the most genes annotated with "flagell"
-#     ##kInd = findmax(int64([length(findin(clusters[k].rows,int64(inds2))) for k=1:length(clusters)]))[ 2 ]  
+def clusters_w_func( func, clusters, n_best=1 ):
+    reg = re.compile(func)
+    inds = np.nonzero( np.array( [ len( reg.findall( str(i) ) ) for i in anno.desc.values ] ) )
+    genes = anno.index.values[ inds ]
+    nhits = np.array( [ np.sum( np.in1d( genes, b.rows ) ) for b in clusters.values() ] )
+    ords = np.argsort( nhits )
+    kInds = ords[ len(ords)-n_best: ]
     
-#     for kInd in kInds
-#         genes = r_rownames[clusters[kInd].rows] ##rows]
-#         ##println(genes) ## print the genes
-#         genes = genes[ findin(genes, anno["sysName"].data) ]
-#         println(kInd, "\n", anno[in(anno["sysName"].data,genes),["sysName","desc"]])
-#     end
-#     kInds
-# end
+    for kInd in kInds:
+        genes = clusters[kInd].rows
+        ##print genes ## print the genes
+        genes = genes[ np.in1d(genes, anno.index.values) ]
+        print kInd, '\n', anno.ix[ np.in1d(anno.index.values,genes), ['desc'] ]
+    return kInds
+
