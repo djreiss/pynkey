@@ -15,15 +15,13 @@ def run_pynkey(iter):
         glb.clusters = clusters
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
         glb.stats_df = glb.stats_df.append( stats_tmp )
-        stats_df.to_csv( 'output/%s_stats.tsv' % glb.organism, sep='\t', na_rep='NA' )
-        if os.path.isfile( 'DO_SAVE' ): ## save cluster info for temp. examination of clusters
+        if os.path.exists( 'DO_SAVE' ): ## save stats, and cluster info for temp. examination of clusters
             warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % glb.organism )
+            glb.stats_df.to_csv( 'output/%s_stats.tsv' % glb.organism, sep='\t', na_rep='NA' )
             clusters_tab = clusters_to_dataFrame(clusters)
-            clusters_tab.to_csv( 'output/%s_clusters.tsv', sep='\t', na_rep='NA' )
-        if n_improvements <= 0:
-            n_no_improvements += 1
-        else:
-            n_no_improvements = 0
+            clusters_tab.to_csv( 'output/%s_clusters.tsv' % glb.organism, sep='\t', na_rep='NA' )
+
+        n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
         n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )
         if n_changed <= 10 and iter > n_iters/2 and n_no_improvements > 5:
             break
