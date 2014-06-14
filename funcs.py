@@ -105,15 +105,15 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
 
 def clusters_to_dataFrame( clusters ):
     out = {}
-    for k in arange(1,len(clusters)):
+    for k in xrange(1,len(clusters)):
         b = clusters[k]
         out_r = pd.DataFrame( { 'k': [k],
-                                'rows': join(b.rows,','),
+                                'rows': ','.join(b.rows),
                                 'resid': [b.resid],
                                 'dens_string': [b.dens_string],
                                 'meanp_meme': [b.meanp_meme],
-                                'cols': join(b.cols,','),
-                                'meme_out': join(b.meme_out,'<<<<>>>>') } )
+                                'cols': ','.join(b.cols),
+                                'meme_out': '<<<<>>>>'.join(b.meme_out) } )
         out[k] = out_r
     out = pd.concat( out.values() )
     return out

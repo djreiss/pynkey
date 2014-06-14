@@ -1,10 +1,12 @@
 ## MAIN PROGRAM
 import datetime
 import os.path
+import warnings
 
 import pandas as pd
 import numpy as np
-from params import n_iters,nthreads
+from params import n_iters,nthreads,organism
+from funcs import clusters_to_dataFrame
 
 def run_pynkey(iter):
     n_no_improvements = 0
@@ -16,10 +18,10 @@ def run_pynkey(iter):
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
         glb.stats_df = glb.stats_df.append( stats_tmp )
         if os.path.exists( 'DO_SAVE' ): ## save stats, and cluster info for temp. examination of clusters
-            warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % glb.organism )
-            glb.stats_df.to_csv( 'output/%s_stats.tsv' % glb.organism, sep='\t', na_rep='NA' )
+            warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % organism )
+            glb.stats_df.to_csv( 'output/%s_stats.tsv' % organism, sep='\t', na_rep='NA' )
             clusters_tab = clusters_to_dataFrame(clusters)
-            clusters_tab.to_csv( 'output/%s_clusters.tsv' % glb.organism, sep='\t', na_rep='NA' )
+            clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
 
         n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
         n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )
