@@ -1,5 +1,6 @@
 ## MAIN PROGRAM
 import datetime
+import os.path
 
 import pandas as pd
 import numpy as np
@@ -14,11 +15,11 @@ def run_pynkey(iter):
         glb.clusters = clusters
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
         glb.stats_df = glb.stats_df.append( stats_tmp )
-        ##write_table( "output/$(organism)_stats.tsv", stats_df )
-        ##if isfile( "DO_SAVE" ): ## save cluster info for temp. examination of clusters
-        ##    warn( "Writing out clusters to output/$(organism)_clusters.tsv" )
-        ##    clusters_tab = clusters_to_dataFrame(clusters);
-        ##    write_table("output/$(organism)_clusters.tsv", clusters_tab)
+        stats_df.to_csv( 'output/%s_stats.tsv' % glb.organism, sep='\t', na_rep='NA' )
+        if os.path.isfile( 'DO_SAVE' ): ## save cluster info for temp. examination of clusters
+            warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % glb.organism )
+            clusters_tab = clusters_to_dataFrame(clusters)
+            clusters_tab.to_csv( 'output/%s_clusters.tsv', sep='\t', na_rep='NA' )
         if n_improvements <= 0:
             n_no_improvements += 1
         else:

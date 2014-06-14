@@ -147,8 +147,8 @@ def writeFasta( seqs, fname ): ## Assumes seqs in DataFrame format of get_sequen
     SeqIO.write(tmp, handle, "fasta")
     handle.close()
 
-##def revComp( seq ):
-##    reverse_complement(seq)
+def revComp( seq ):
+    reverse_complement(seq)
 
 DNA_letters = np.array( [ 'G', 'A', 'T', 'C' ] )
 

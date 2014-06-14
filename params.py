@@ -20,9 +20,9 @@ print organism
 if organism == 'Hpy':
     k_clust = 75
 elif organism == 'Eco':
-    k_clust = 400
+    k_clust = 450
 elif organism == 'Sce':
-    k_clust = 500
+    k_clust = 600
 elif organism == 'Mpn':
     k_clust = 75
 

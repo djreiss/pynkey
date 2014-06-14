@@ -101,25 +101,22 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
     tmp = np.array(c.values())
     out_df['CLUSTS_PER_COL'] = np.nanmean(tmp)
     print 'CLUSTS PER COL:', out_df.CLUSTS_PER_COL[0], ' +/- ', np.nanstd(tmp)
-
     return out_df
 
-# function clusters_to_dataFrame( clusters::Dict{Int64,bicluster} )
-#     out = Array(DataFrame,length(clusters))
-#     for k in 1:length(clusters)
-#         b = clusters[k]
-#         out_r = DataFrame( { "k" => k,
-#                             "rows" => [join(rownames(ratios)[b.rows],',')],
-#                             "resid" => b.resid,
-#                             "dens_string" => b.dens_string,
-#                             "meanp_meme" => b.meanp_meme,
-#                             "cols" => [join(colnames(ratios)[b.cols],',')],
-#                             "meme_out" => [join(b.meme_out,"<<<<>>>>")] 
-#                             } )
-#         out[k] = out_r
-#     end
-#     rbind(out)
-# end
+def clusters_to_dataFrame( clusters ):
+    out = {}
+    for k in arange(1,len(clusters)):
+        b = clusters[k]
+        out_r = pd.DataFrame( { 'k': [k],
+                                'rows': join(b.rows,','),
+                                'resid': [b.resid],
+                                'dens_string': [b.dens_string],
+                                'meanp_meme': [b.meanp_meme],
+                                'cols': join(b.cols,','),
+                                'meme_out': join(b.meme_out,'<<<<>>>>') } )
+        out[k] = out_r
+    out = pd.concat( out.values() )
+    return out
 
 ## Find the flagellar cluster, whew!!!
 # function clusters_w_func( func::ASCIIString, clusters, n_best=1 )

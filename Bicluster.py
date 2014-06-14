@@ -161,7 +161,8 @@ class bicluster:
             warnings.warn( 'Uh oh! %d' %k )
         else:
             self.meme_out = meme_out
-            mast_out = mast_out.set_index( 'Gene' )
+            if mast_out.shape[0] > 0:
+                mast_out = mast_out.set_index( 'Gene' )
             self.mast_out = mast_out
             self.changed[0] = True
         return self
