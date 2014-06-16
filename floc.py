@@ -145,8 +145,7 @@ def rnd_bubblesort3( scores, Nrepeats=None ): ## make sure scores is a copy, b/c
     switchesN = np.array([0]) ## count the number of switches. Not really necessary
     for i in xrange(Nrepeats):
         rnds = rnd.rand(n)
-        code = \
-"""
+        code = """
   for ( int j=0; j<n; j++ ) {
       int o1 = ords(j), o2 = ords(j+1);
       double g1 = sc(o1), g2 = sc(o2);
@@ -159,8 +158,11 @@ def rnd_bubblesort3( scores, Nrepeats=None ): ## make sure scores is a copy, b/c
       }
     }
  """
+        ## See here for other weave options:
+        ## https://mail.python.org/pipermail/cplusplus-sig/2002-January/000428.html
         scipy.weave.inline(code,['ords','n','sc','R','switchesN','rnds','the_max'],
-                           type_converters=scipy.weave.converters.blitz)
+                           type_converters=scipy.weave.converters.blitz,
+                           compiler='gcc', extra_compile_args=['-O3','-malign-double','-funroll-loops'])
         if i % 1000 == 1:
             print i, switchesN[0], Nrepeats
     return ords

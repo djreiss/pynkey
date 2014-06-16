@@ -119,10 +119,9 @@ def clusters_to_dataFrame( clusters ):
     return out
 
 import re
-from globals import anno
 
 ## Find the flagellar cluster, whew!!!
-def clusters_w_func( func, clusters, n_best=1 ):
+def clusters_w_func( func, clusters, anno, n_best=1 ):
     reg = re.compile(func)
     inds = np.nonzero( np.array( [ len( reg.findall( str(i) ) ) for i in anno.desc.values ] ) )
     genes = anno.index.values[ inds ]
