@@ -29,10 +29,11 @@ def get_genome_seq( genome_seqs, scaffoldId ):
     # else:
     #     return ''
 
+## Where did I come up with a pOp cutoff of 0.8 ???
 def get_sequences( genes, anno=None, ##=globals()['anno'], 
                    genome_seqs=None, ##=globals()['genome_seqs'], 
                    op_table=None, ##=globals()['op_table'], 
-                   op_shift=True, distance=params.distance_search, debug=False ):
+                   op_shift=True, distance=params.distance_search, pOp_cutoff=0.8, debug=False ):
     # if anno is None:
     #     anno = globals()['anno']
     # if genome_seqs is None:
@@ -53,12 +54,12 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
                                          index=['gene'] )
             continue
         gene_anno = anno.ix[gene, :]
-        if op_shift and op_table.shape[0] > 0:
+        if op_shift and op_table is not None and op_table.shape[0] > 0:
             strand = gene_anno['strand']
             upLabel = 'SysName1' if strand == '+' else 'SysName2'
             currLabel = 'SysName2' if strand == '+' else 'SysName1'
             row = np.where( op_table[currLabel] == upstream_gene )[0]
-            while len(row) > 0 and op_table.ix[ row[0], "pOp" ] >= 0.8:
+            while len(row) > 0 and op_table.ix[ row[0], 'bOp' ] == True and op_table.ix[ row[0], "pOp" ] >= pOp_cutoff:
                 upstream_gene = op_table.ix[ row, upLabel ].values[0]
                 row = np.where( op_table[currLabel] == upstream_gene )[0]
 

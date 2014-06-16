@@ -87,6 +87,7 @@ class bicluster:
     def compute_residue_deltas( self, ratios, all_genes, actually_cols=False ):
         if not actually_cols:
             is_in = np.in1d( all_genes, self.rows )
+            ##is_in_ratios = np.in1d( all_genes, ratios.index.values )
             rows = self.rows
             rats = ratios.ix[ :, self.cols ]
             resid = funcs.matrix_residue( rats.ix[ rows, : ] )
@@ -135,6 +136,7 @@ class bicluster:
 
     def compute_network_density_deltas( self, network, all_genes ):
         is_in = np.in1d( all_genes, self.rows )
+        ##is_in_net = np.logical_or( np.in1d(all_genes,string_net.index.values), np.in1d(all_genes,string_net.protein2) )
         rows = self.rows
         net1 = network.ix[ self.rows ]
         net1.set_index( ['protein2'], inplace=True )
