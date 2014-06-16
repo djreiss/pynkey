@@ -50,7 +50,7 @@ def subnetwork_density( rows, network, already_subnetted=False ):
         net1 = network.ix[rows]
         net1.set_index( ['protein2'], inplace=True ) ##[ np.in1d( net1.protein2, rows ) ]
     net2 = net1.ix[ rows ]
-    dens = float(np.sum( net2.weight )) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
+    dens = float(np.sum(net2.weight)) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
     return np.log10( dens+1e-9 )
 
 from collections import Counter
@@ -118,6 +118,9 @@ def clusters_to_dataFrame( clusters ):
     out = pd.concat( out.values() )
     return out
 
+import re
+from globals import anno
+
 ## Find the flagellar cluster, whew!!!
 def clusters_w_func( func, clusters, n_best=1 ):
     reg = re.compile(func)
@@ -131,6 +134,6 @@ def clusters_w_func( func, clusters, n_best=1 ):
         genes = clusters[kInd].rows
         ##print genes ## print the genes
         genes = genes[ np.in1d(genes, anno.index.values) ]
-        print kInd, '\n', anno.ix[ np.in1d(anno.index.values,genes), ['desc'] ]
+        print kInd, nhits[kInd], '\n', anno.ix[ np.in1d(anno.index.values,genes), ['desc'] ]
     return kInds
 
