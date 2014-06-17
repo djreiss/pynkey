@@ -53,9 +53,9 @@ def finish():
     clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
     clusters_tab.to_csv( 'output/%s_clusters.tsv' % params.organism, sep='\t', na_rep='NA' )
 
-    tmp = bicluster.get_all_cluster_row_counts( glb.clusters, glb.all_genes )
+    tmp = np.array( bicluster.get_all_cluster_row_counts( glb.clusters, glb.all_genes ).values() )
     print np.sum(tmp==0), 'genes in no clusters'
-    print np.sum(tmp==np.maximum(tmp)), 'genes in', np.maximum(tmp), 'clusters'
+    print np.sum(tmp==np.max(tmp)), 'genes in', np.max(tmp), 'clusters'
 
 # println( @sprintf( "%.3f", (endTime - startTime)/60 ), " minutes since initialization" )
 
