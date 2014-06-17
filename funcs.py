@@ -113,7 +113,7 @@ def clusters_to_dataFrame( clusters ):
                                 'dens_string': [b.dens_string],
                                 'meanp_meme': [b.meanp_meme],
                                 'cols': ','.join(b.cols),
-                                'meme_out': '<<<<>>>>'.join('\n'.split(b.meme_out)) } )
+                                'meme_out': '' if b.meme_out == '' else '<<<<>>>>'.join('\n'.split(b.meme_out)) } )
         out[k] = out_r
     out = pd.concat( out.values() )
     return out

@@ -3,7 +3,7 @@ import numpy as np
 
 print 'importing params'
 
-nthreads = 1 ## 1 to not parallelize; None to automatically use all available processors
+nthreads = None ## 1 to not parallelize; None to automatically use all available processors
 
 #def undefined(var):
 #    var not in vars() and var not in globals()
