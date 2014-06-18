@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 import scores
+import weaved
 
 print 'importing funcs'
 
@@ -17,21 +18,25 @@ def re_seed_all_clusters_if_necessary( clusters, ratios, all_genes, min_rows=3, 
         clusters[k] = clusters[k].re_seed_if_necessary( clusters, ratios, all_genes, min_rows, max_rows )
     return clusters
 
-def matrix_residue( rats ):
+## rats needs to be a numpy array (not dataframe - so use df.values if necessary)
+def matrix_residue( rats, weaveIt=True ):
     if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1: ## or \
             ##np.mean( rats.isnull().values ) > 0.95:
         warnings.warn( "COULD NOT COMPUTE RESIDUE" )
         return 1.0
 
-    rats = rats.values ## do it all in numpy - faster
-    d_rows = np.nanmean(rats, 1) ##rats.mean(1)
-    d_cols = np.nanmean(rats, 0) ##rats.mean(0)
-    d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
-    rats = rats + d_all - np.add.outer( d_rows, d_cols )
-    ## another way of doing this, but about the same speed:
-    ##rats = (rats+d_all-d_cols).T-d_rows
+    ##rats = rats.values ## do it all in numpy - faster
 
-    average_r = np.nanmean( np.abs(rats) )
+    if not weaveIt:
+        d_rows = np.nanmean(rats, 1) ##rats.mean(1)
+        d_cols = np.nanmean(rats, 0) ##rats.mean(0)
+        d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
+        rats = rats + d_all - np.add.outer( d_rows, d_cols )
+        ## another way of doing this, but about the same speed:
+        ##rats = (rats+d_all-d_cols).T-d_rows
+        average_r = np.nanmean( np.abs(rats) )
+
+    average_r = weaved.fast_resid(rats)
     return average_r
 
 def matrix_var( rats, var_add=0.1 ):
@@ -39,18 +44,20 @@ def matrix_var( rats, var_add=0.1 ):
     mn = np.nanmean(rats, 0) ## subtract bicluster mean profile
     return np.nanvar(rats-mn) / (np.nanvar(mn) + var_add)
 
+# def subnetwork_density_OLD( rows, network ):
+#     net1 = network.ix[rows]
+#     net1.set_index( ['protein2'], inplace=True ) ##[ np.in1d( net1.protein2, rows ) ]
+#     net2 = net1.ix[ rows ]
+#     dens = float(np.sum(net2.weight)) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
+#     return np.log10( dens+1e-9 )
+
 ## Use edge density score: sum of edge weights (=number of edges for all weights =1) / number of nodes^2
 ## This is the faster version that uses SubDataFrames
 ## TODO: use numexpr to speed up and avoid temporary array creation?
-def subnetwork_density( rows, network, already_subnetted=False ):
-    ##net2 = net1[ np.in1d( net1.protein2, rows ) ]
-    if already_subnetted: ## presumed already subnetted and index set to protein2
-        net1 = network
-    else:
-        net1 = network.ix[rows]
-        net1.set_index( ['protein2'], inplace=True ) ##[ np.in1d( net1.protein2, rows ) ]
-    net2 = net1.ix[ rows ]
-    dens = float(np.sum(net2.weight)) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
+## This is slower but for accuracy when passed a subnetwork it can be faster
+def subnetwork_density_NEW( rows, network ):
+    net1 = network[ network[[0,1]].isin(rows).all(1) ]
+    dens = float(np.sum(net1.weight)) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
     return np.log10( dens+1e-9 )
 
 from collections import Counter

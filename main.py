@@ -20,7 +20,7 @@ def run_pynkey(iter):
         if os.path.exists( 'DO_SAVE' ): ## save stats, and cluster info for temp. examination of clusters
             warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % organism )
             glb.stats_df.to_csv( 'output/%s_stats.tsv' % organism, sep='\t', na_rep='NA' )
-            clusters_tab = clusters_to_dataFrame(clusters)
+            clusters_tab = funcs.clusters_to_dataFrame(clusters)
             clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
 
         n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
@@ -51,7 +51,7 @@ def finish():
 #                                    clusters, stats_df, junkey_code) )
 
     clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
-    clusters_tab.to_csv( 'output/%s_clusters.tsv' % params.organism, sep='\t', na_rep='NA' )
+    clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
 
     tmp = np.array( bicluster.get_all_cluster_row_counts( glb.clusters, glb.all_genes ).values() )
     print np.sum(tmp==0), 'genes in no clusters'

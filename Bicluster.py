@@ -77,7 +77,7 @@ class bicluster:
         ##        np.mean( rats.isnull().values ) > 0.95:
         ##    warnings.warn( "COULD NOT COMPUTE RESIDUE FOR BICLUSTER " + self.k )
         ##    return 1.0
-        return funcs.matrix_residue( rats )
+        return funcs.matrix_residue( rats.values )
 
     ## Note: how to profile this in ipython:
     ## %load_ext line_profiler
@@ -86,47 +86,84 @@ class bicluster:
     ## %lprun -f Bicluster.bicluster.compute_residue_deltas Bicluster.bicluster.compute_residue_deltas(clust,ratios,all_genes)
     def compute_residue_deltas( self, ratios, all_genes, actually_cols=False ):
         if not actually_cols:
-            is_in = np.in1d( all_genes, self.rows )
-            ##is_in_ratios = np.in1d( all_genes, ratios.index.values )
+            in_rats = ratios
             rows = self.rows
-            rats = ratios.ix[ :, self.cols ]
-            resid = funcs.matrix_residue( rats.ix[ rows, : ] )
-        else:  ## all_genes is actually all_cols==ratios.columns.values
-            is_in = np.in1d( all_genes, self.cols )
+            cols = self.cols
+            is_inRats = np.in1d( all_genes, ratios.index.values )
+        else:  ## all_genes needs to be all_cols==ratios.columns.values
+            in_rats = ratios.T
             rows = self.cols
-            rats = ratios.ix[ self.rows, : ]
-            resid = funcs.matrix_residue( rats.ix[ :, rows ] )
+            cols = self.rows
+            is_inRats = np.in1d( all_genes, ratios.columns.values )
+        is_in = np.in1d( all_genes, rows )
+        rats = in_rats.ix[ :, cols ]
+        resid = funcs.matrix_residue( rats.ix[ rows ].values )
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
+            if not is_inRats[i]:
+                all_resids[i] = resid
+                continue
             r = all_genes[i]
             rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
-            if not actually_cols:
-                all_resids[i] = funcs.matrix_residue( rats.ix[ rows2, : ] )
+            all_resids[i] = funcs.matrix_residue( rats.ix[ rows2 ].values )
+        return all_resids - resid
+
+    ## 143 ms vs. 355 ms for old way
+    ## Faster way seems to be to take bicluster submatrix, then append single row for 
+    ##   each test (rather than old way which is to subset entire matrix each iter)
+    def compute_residue_deltas_FASTER( self, ratios, all_genes, actually_cols=False ):
+        ## if actually_cols is False, then all_genes should be ratios.colums.values
+        if not actually_cols:
+            in_rats = ratios
+            rows = self.rows
+            cols = self.cols
+            is_inRats = np.in1d( all_genes, ratios.index.values )
+        else:  ## all_genes needs to be all_cols==ratios.columns.values
+            in_rats = ratios.T
+            rows = self.cols
+            cols = self.rows
+            is_inRats = np.in1d( all_genes, ratios.columns.values )
+
+        is_in = np.in1d( all_genes, rows )
+        rats = in_rats.ix[ :, cols ]
+        rrats = rats.ix[ rows ]
+        resid = funcs.matrix_residue( rrats.values )
+        all_resids = np.zeros( len( all_genes ), float )
+        for i in xrange(len(all_genes)):
+            if not is_inRats[i]:
+                all_resids[i] = resid
+                continue
+            r = all_genes[i]
+            if is_in[i]:
+                rows2 = rows[ rows != r ]
+                tmp_rats = rrats.ix[ rows2 ].values
             else:
-                all_resids[i] = funcs.matrix_residue( rats.ix[ :, rows2 ] )
+                tmp_rats = np.append( rrats.values, [rats.ix[ r ].values], axis=0 )
+            all_resids[i] = funcs.matrix_residue( tmp_rats )
         return all_resids - resid
 
     def compute_var( self, ratios, var_add=0.1 ):
         rats = ratios.ix[ self.rows, self.cols ] ##.copy() ## get the bicluster's submatrix of the data
         return funcs.matrix_var( rats, var_add )
 
+    ## TBD: re-design this function as is done by compute_residue_deltas
     def compute_var_deltas( self, ratios, all_genes, var_add=0.1, actually_cols=False ):
         if not actually_cols:
             is_in = np.in1d( all_genes, self.rows )
             rows = self.rows
             rats = ratios.ix[ :, self.cols ]
-            resid = funcs.matrix_var( rats.ix[ rows, : ], var_add )
+            resid = funcs.matrix_var( rats.ix[ self.rows ], var_add )
         else:  ## all_genes is actually all_cols==ratios.columns.values
             is_in = np.in1d( all_genes, self.cols )
             rows = self.cols
-            rats = ratios.ix[ self.rows, : ]
-            resid = funcs.matrix_var( rats.ix[ :, rows ], var_add )
+            rats = ratios.ix[ self.rows ]
+            resid = funcs.matrix_var( rats.ix[ :, self.rows ], var_add )
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
             rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
             if not actually_cols:
-                all_resids[i] = funcs.matrix_var( rats.ix[ rows2, : ], var_add )
+                all_resids[i] = funcs.matrix_var( rats.ix[ rows2 ], var_add )
             else:
                 all_resids[i] = funcs.matrix_var( rats.ix[ :, rows2 ], var_add )
         return all_resids - resid
@@ -136,16 +173,15 @@ class bicluster:
 
     def compute_network_density_deltas( self, network, all_genes ):
         is_in = np.in1d( all_genes, self.rows )
-        ##is_in_net = np.logical_or( np.in1d(all_genes,string_net.index.values), np.in1d(all_genes,string_net.protein2) )
         rows = self.rows
-        net1 = network.ix[ self.rows ]
-        net1.set_index( ['protein2'], inplace=True )
-        dens = funcs.subnetwork_density( rows, net1, already_subnetted=True )
+    #     dens = funcs.subnetwork_density( rows, network )
+        net1 = network[ network[[0,1]].isin(rows).any(1) ] ## subnetwork where protein1 OR protein2 are in rows
+        dens = funcs.subnetwork_density( rows, net1 ) ## pass subnetwork to this func for speed
         all_dens = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
             rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
-            all_dens[i] = funcs.subnetwork_density( rows2, net1, already_subnetted=True )
+            all_dens[i] = funcs.subnetwork_density_NEW( rows2, net1 )
         return all_dens - dens
 
     def get_sequences( self, anno, genome_seqs, op_table, distance, do_filter=True):

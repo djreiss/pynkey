@@ -32,7 +32,7 @@ def pynkey_init(organism, k_clust, ratios_file):
     ## build up a list of all genes in the expr. data + in the annotations + in the string network
     all_genes = ratios.index.values ## same as rownames
     all_genes = np.unique( np.append( all_genes, anno.index.values ) )
-    all_genes = np.unique( np.append( all_genes, [string_net.index.values, string_net.protein2.values] ) )
+    all_genes = np.unique( np.append( all_genes, [string_net.protein1.values, string_net.protein2.values] ) )
     all_genes = np.unique( np.append( all_genes, [op_table.SysName1.values, op_table.SysName2.values] ) )
     all_genes = np.sort(all_genes)
     all_genes = all_genes[ all_genes != NA ] ## for some reason some are floats and they are printing as nan's but this line
@@ -151,7 +151,9 @@ def load_string_net(organism):
     string_file = './' + organism + '/' + org_files[ np.array( [f.startswith('STRING') for f in org_files] ) ][ 0 ]
 
     print string_file
-    string_net = pd.read_table(string_file, compression='gzip', names=['protein1','protein2','weight'], index_col='protein1') 
+    string_net = pd.read_table(string_file, compression='gzip', names=['protein1','protein2','weight'], 
+                               index_col=False) 
+    string_net.set_index( 'protein1', drop=False, inplace=True )
 
     ## Symmetrize it? -- no, seems to already be done.
 #   tmp = pd.concat([string_net.ix[:,1], string_net.ix[:,0], string_net.ix[:,2]], axis=1, ignore_index=True)
