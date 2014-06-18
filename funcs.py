@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 import pandas as pd
 
+import params,globals ## for loading/saving environment
 import scores
 import weaved
 
@@ -109,6 +110,38 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
     out_df['CLUSTS_PER_COL'] = np.nanmean(tmp)
     print 'CLUSTS PER COL:', out_df.CLUSTS_PER_COL[0], ' +/- ', np.nanstd(tmp)
     return out_df
+
+def checkpoint( fname ):
+    ## first build up a big dict with all items you want to save
+    import cPickle as pickle
+    import gzip
+    d = dict()
+    for k,v in params.__dict__.items(): ## save everything from params
+        if k.startswith('__'): continue;
+        if ( type(v) == type(pickle) ): continue; ## module type
+        print 'Saving:', k, type(k)
+        ##exec '%s = v' % k
+        d[ 'params.%s'%k ] = v
+    for k,v in globals.__dict__.items(): ## save everything from params
+        if k.startswith('__'): continue;
+        if ( type(v) == type(pickle) ): continue; ## module type
+        print 'Saving:', k, type(k)
+        d[ 'globals.%s'%k ] = v
+    f = gzip.open( fname, 'wb' )
+    pickle.dump( d, f, pickle.HIGHEST_PROTOCOL ) ## dump the dict
+    f.close()
+
+def load_checkpoint( fname ): ## use 'exec' to load the values
+    ## trick from http://lucumr.pocoo.org/2011/2/1/exec-in-python/
+    import cPickle as pickle
+    import gzip
+    f = gzip.open( fname, 'r' )
+    dd = pickle.load( f ) ## read the dict
+    f.close()
+    for k,v in dd.items():
+        print '%s = v' % k
+        code = compile('%s = v' % k, '<string>', 'exec')
+        exec code
 
 def clusters_to_dataFrame( clusters ):
     out = {}

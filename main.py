@@ -22,6 +22,8 @@ def run_pynkey(iter):
             glb.stats_df.to_csv( 'output/%s_stats.tsv' % organism, sep='\t', na_rep='NA' )
             clusters_tab = funcs.clusters_to_dataFrame(clusters)
             clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
+            warnings.warn( 'Writing out everything to output/%s.pkl' % organism )
+            funcs.checkpoint( 'output/%s.pkl' % organism )
 
         n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
         n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )
