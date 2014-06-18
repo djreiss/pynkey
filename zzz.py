@@ -12,6 +12,15 @@ if False:
     #%timeit -n1 ord = floc.rnd_bubblesort3( scores_all2['combined'].values.copy() ) ##, scores_all2.shape[0]*2 )
 
 
+### testing the parallelized biclusterings
+from globals import *
+from params import *
+import Bicluster
+tmp = Bicluster.re_meme_all_clusters_par(clusters)
+
+
+## testing weaved residue funcs
+
 import weaved
 
 b = clusters[0]
