@@ -181,7 +181,7 @@ class bicluster:
         for i in xrange(len(all_genes)):
             r = all_genes[i]
             rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
-            all_dens[i] = funcs.subnetwork_density_NEW( rows2, net1 )
+            all_dens[i] = funcs.subnetwork_density( rows2, net1 )
         return all_dens - dens
 
     def get_sequences( self, anno, genome_seqs, op_table, distance, do_filter=True):
