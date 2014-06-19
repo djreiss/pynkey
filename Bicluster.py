@@ -186,7 +186,7 @@ class bicluster:
         rows = self.rows
     #     dens = funcs.subnetwork_density( rows, network )
         net1 = network[ network[[0,1]].isin(rows).any(1) ] ## subnetwork where protein1 OR protein2 are in rows
-        if net1.size[0] <= 0:
+        if net1.shape[0] <= 0:
             return np.repeat( -0.1, len(all_genes) )
         dens = funcs.subnetwork_density( rows, net1 ) ## pass subnetwork to this func for speed
         all_dens = np.zeros( len( all_genes ), float )
