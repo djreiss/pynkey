@@ -2,6 +2,7 @@
 ## TODO: Load and use other networks (with their respective scores)
 import os
 import gzip
+import datetime
 
 import numpy as np
 from numpy import nan as NA
@@ -13,8 +14,44 @@ import sequence as seq
 
 import params
 from Bicluster import bicluster
+import globals as glb
 
 print 'importing init'
+
+IS_INITED = False
+
+def init( from_pickle_file=None ):
+    global IS_INITED
+    #global ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes
+    #global pynkey_code, clusters, endTime
+
+    if from_pickle_file is not None:
+        from funcs import load_checkpoint
+        load_checkpoint( from_pickle_file )
+        print str(glb.startTime)
+
+    else:
+
+        glb.ratios, glb.genome_seqs, glb.anno, glb.op_table, glb.string_net, glb.allSeqs_fname, \
+            glb.all_bgFreqs, glb.all_genes = \
+            pynkey_init(params.organism, params.k_clust, params.ratios_file)
+
+        # Save all pynkey code for safe keeping
+        glb.pynkey_code = {}
+        try:
+            glb.pynkey_code = load_pynkey_code()
+        except:
+            print 'Must have "import"ed this module rather than run from main.py.'
+        
+        glb.clusters = init_biclusters( glb.ratios, params.k_clust, 'kmeans+random' );
+
+        ##counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
+
+    print 'DONE WITH INITIALIZATION!'
+    glb.endTime = datetime.datetime.now()
+    print str(glb.endTime)
+    print str(glb.endTime - glb.startTime) + ' seconds since initialization'
+    IS_INITED = True
 
 def pynkey_init(organism, k_clust, ratios_file):
     print organism

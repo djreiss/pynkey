@@ -4,7 +4,6 @@ import datetime
 import numpy as np
 import pandas as pd
 
-import params,globals ## for loading/saving environment
 import scores
 import weaved
 
@@ -112,6 +111,7 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
     return out_df
 
 def checkpoint( fname ):
+    import params,globals ## for loading/saving environment
     ## first build up a big dict with all items you want to save
     import cPickle as pickle
     import gzip
@@ -132,6 +132,7 @@ def checkpoint( fname ):
     f.close()
 
 def load_checkpoint( fname ): ## use 'exec' to load the values
+    import params, globals ## for loading/saving environment ... need to allow for loading globals without running init
     ## trick from http://lucumr.pocoo.org/2011/2/1/exec-in-python/
     import cPickle as pickle
     import gzip
@@ -139,7 +140,7 @@ def load_checkpoint( fname ): ## use 'exec' to load the values
     dd = pickle.load( f ) ## read the dict
     f.close()
     for k,v in dd.items():
-        print '%s = v' % k
+        print 'Loading: %s' % k
         code = compile('%s = v' % k, '<string>', 'exec')
         exec code
 

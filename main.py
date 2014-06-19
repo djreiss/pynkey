@@ -3,10 +3,11 @@ import datetime
 import os.path
 import warnings
 
-import pandas as pd
 import numpy as np
 from params import n_iters,nthreads,organism
 import funcs
+import globals as glb
+import init
 
 def run_pynkey(iter):
     n_no_improvements = 0
@@ -46,14 +47,9 @@ def finish():
     b = glb.clusters[kInd]
     print b.meme_out
 
-## Right now this fails on the clusters if we use gzopen (open works fine, though)
-# save_jld( "output/$(organism)_out.jldz", (organism, k_clust, ratios, genome_seqs, anno, op_table, string_net, 
-#                                    allSeqs_fname, all_bgFreqs, startTime, endTime,
-#                                    all_genes, iter, n_iters, distance_search, distance_scan, motif_width_range,
-#                                    clusters, stats_df, junkey_code) )
-
     clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
     clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
+    funcs.checkpoint( 'output/%s.pkl' % organism )
 
     tmp = np.array( bicluster.get_all_cluster_row_counts( glb.clusters, glb.all_genes ).values() )
     print np.sum(tmp==0), 'genes in no clusters'
@@ -68,7 +64,9 @@ def finish():
 
 
 if __name__ == '__main__':
-    import globals as glb ## this does the initialization
+    if not init.IS_INITED:
+        init.init()
+
     from Bicluster import fill_all_cluster_scores_par
     import floc
 

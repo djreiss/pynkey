@@ -40,7 +40,7 @@ def re_meme_bicluster( k, seqs, n_motifs, allSeqs_fname, motif_width_range, verb
                 warnings.warn( 'ERROR RUNNING MAST FOR BICLUSTER %d' % k )
                 print sys.exc_info()[0]
         else:
-            warnings.warn( 'TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d' %k )
+            warnings.warn( 'TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d' % k )
     except:
         warnings.warn( "TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d" % k )
         print sys.exc_info()[0]

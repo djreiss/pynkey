@@ -86,11 +86,15 @@ class bicluster:
     ## %lprun -f Bicluster.bicluster.compute_residue_deltas Bicluster.bicluster.compute_residue_deltas(clust,ratios,all_genes)
     def compute_residue_deltas( self, ratios, all_genes, actually_cols=False ):
         if not actually_cols:
+            if len(self.rows) <= 0:
+                return np.repeat( -0.1, len(all_genes) )
             in_rats = ratios
             rows = self.rows
             cols = self.cols
             is_inRats = np.in1d( all_genes, ratios.index.values )
         else:  ## all_genes needs to be all_cols==ratios.columns.values
+            if len(self.cols) <= 0:
+                return np.repeat( -0.1, len(all_genes) )
             in_rats = ratios.T
             rows = self.cols
             cols = self.rows
@@ -114,11 +118,15 @@ class bicluster:
     def compute_residue_deltas_FASTER( self, ratios, all_genes, actually_cols=False ):
         ## if actually_cols is False, then all_genes should be ratios.colums.values
         if not actually_cols:
+            if len(self.rows) <= 0:
+                return np.repeat( -0.1, len(all_genes) )
             in_rats = ratios
             rows = self.rows
             cols = self.cols
             is_inRats = np.in1d( all_genes, ratios.index.values )
         else:  ## all_genes needs to be all_cols==ratios.columns.values
+            if len(self.cols) <= 0:
+                return np.repeat( -0.1, len(all_genes) )
             in_rats = ratios.T
             rows = self.cols
             cols = self.rows
@@ -172,15 +180,19 @@ class bicluster:
         return funcs.subnetwork_density( self.rows, network )
 
     def compute_network_density_deltas( self, network, all_genes ):
+        if len(self.rows) <= 0:
+            return np.repeat( -0.1, len(all_genes) )
         is_in = np.in1d( all_genes, self.rows )
         rows = self.rows
     #     dens = funcs.subnetwork_density( rows, network )
         net1 = network[ network[[0,1]].isin(rows).any(1) ] ## subnetwork where protein1 OR protein2 are in rows
+        if net1.size[0] <= 0:
+            return np.repeat( -0.1, len(all_genes) )
         dens = funcs.subnetwork_density( rows, net1 ) ## pass subnetwork to this func for speed
         all_dens = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
-            rows2 = np.append( rows, r ) if is_in[i] else rows[ rows != r ]
+            rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
             all_dens[i] = funcs.subnetwork_density( rows2, net1 )
         return all_dens - dens
 
@@ -213,12 +225,14 @@ class bicluster:
         return mn
 
     def compute_meme_pval_deltas( self, all_genes ):
+        if len(self.rows) <= 0:
+            return np.repeat( -0.1, len(all_genes) )
         is_in = np.in1d( all_genes, self.rows )
         pval = self.compute_meme_pval()
         all_pvals = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
-            rows2 = np.append( self.rows, r ) if is_in[i] else self.rows[ self.rows != r ]
+            rows2 = self.rows[ self.rows != r ] if is_in[i] else np.append( self.rows, r ) 
             df = self.mast_out.ix[ rows2 ] ## make sure index of mast_out is Gene !!! Done - in bicluster.re_meme()
             all_pvals[i] = np.nanmean( np.log10( df['P-value'] ) )
         return all_pvals - pval
@@ -252,7 +266,8 @@ class bicluster:
     def get_row_count_scores( self, all_genes, counts_g ):
         is_in = np.in1d( all_genes, self.rows )
         score_g = bicluster.get_cluster_row_count_scores( counts_g )
-        score_g = np.array( [ (+score_g[all_genes[i]] if is_in[i] else -score_g[all_genes[i]]) for i in xrange(len(is_in)) ] )
+        score_g = np.array( [ (+score_g[all_genes[i]] if is_in[i] else -score_g[all_genes[i]]) \
+                                  for i in xrange(len(is_in)) ] )
         return score_g
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
@@ -340,7 +355,7 @@ class bicluster:
             self.cols = np.sort(np.unique(np.concatenate( (self.cols, \
                                                            ratios.columns.values[ rand.choice(ratios.shape[1], \
                                                            ratios.shape[1]/3-len(self.cols), replace=False) ] )), 0))
-            self.changed[ 0 ] = self.changed[ 1 ] = True
+            self.changed[0] = self.changed[1] = True
         elif len(self.rows) > max_rows:
             counts_g = ( counts_g + 0.01 ) / ( np.max(counts_g) + 0.01 )
             tmp_rows = g[np.in1d(g,self.rows)][ np.unique( ut.slice_sampler( counts_g[np.in1d(g,self.rows)], 
@@ -417,9 +432,12 @@ class bicluster:
 
 import globals as glb
 
-def fill_all_cluster_scores_par( clusters, threads=None ):
+def fill_all_cluster_scores_par( clusters, threads=None, force=False ):
     ## Clusters per gene counts - precompute:
     glb.counts_g = bicluster.get_all_cluster_row_counts( clusters, glb.all_genes )
+    if force:
+        for c in clusters.values():
+            c.changed[0] = c.changed[1] = True
     clusters = ut.do_something_par( clusters.values(), fill_all_scores_par, threads=threads )
     clusters = {clusters[i].k: clusters[i] for i in xrange(len(clusters))}  # convert back to map
     return clusters
@@ -428,12 +446,13 @@ def fill_all_cluster_scores_par( clusters, threads=None ):
 def fill_all_scores_par( clust ):
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( glb.iter, glb.ratios )
     was_changed = clust.changed[0]
-    clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, glb.counts_g, 
-                          glb.ratios.columns.values)
     if weight_m > 0 and was_changed:
         n_mots = meme.get_n_motifs( glb.iter, params.n_iters )
         clust.re_meme( params.distance_search, glb.allSeqs_fname, glb.anno, glb.genome_seqs, 
                        glb.op_table, params.motif_width_range, n_motifs=n_mots )
+    clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, glb.counts_g, 
+                          glb.ratios.columns.values)
+    clust.changed[0] = clust.changed[1] = False
     return clust
 
 ## Now this only sends over k to the children; clusters and genome_seqs, etc. are all global in childrens' namespace

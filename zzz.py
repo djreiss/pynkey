@@ -5,8 +5,8 @@ import funcs
 import floc
 
 if False:
-    scores_all = floc.get_floc_scores_all(clusters, iter, all_genes, ratios, string_net)
-    scores_all2 = floc.get_floc_scores_best(scores_all)
+    scores_all = floc.get_scores_all(clusters, iter, all_genes, ratios, string_net)
+    scores_all2 = floc.get_scores_best(scores_all)
     #%timeit -n1 ord = floc.rnd_bubblesort( scores_all2['combined'].values.copy() ) ##, scores_all2.shape[0]*2 )
     #%timeit -n1 ord = floc.rnd_bubblesort2( scores_all2['combined'].values.copy() ) ##, scores_all2.shape[0]*2 )
     #%timeit -n1 ord = floc.rnd_bubblesort3( scores_all2['combined'].values.copy() ) ##, scores_all2.shape[0]*2 )
