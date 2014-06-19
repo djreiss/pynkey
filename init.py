@@ -182,6 +182,8 @@ def load_annos(organism):
     x = pd.read_table(genomeInfo_file, compression='gzip', index_col='sysName') 
     return x
 
+## TBD: save string_net as a sparse data frame (i.e., matrix) for speed?
+## see http://pandas.pydata.org/pandas-docs/dev/sparse.html
 def load_string_net(organism):
 ## Load the string network
     org_files = np.array( os.listdir('./' + organism + '/') )
