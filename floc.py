@@ -18,7 +18,7 @@ print 'importing floc'
 
 ## Get gain scores for all possible row/col moves
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
-def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=5, max_col=20): ##9999, max_col=9999): 
+def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999): ##5, max_col=20): 
     ## First, collate move scores into a single DataFrame for stochastic sorting
     ## Use pd.DataFrame for scores rather than matrix
 

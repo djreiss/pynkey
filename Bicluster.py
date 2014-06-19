@@ -72,6 +72,8 @@ class bicluster:
         return float(len(self.rows) * len(self.cols))
 
     def compute_residue( self, ratios ):
+        if len(self.rows) <= 0:
+            return NA
         rats = ratios.ix[ self.rows, self.cols ]
         ##if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1 or \
         ##        np.mean( rats.isnull().values ) > 0.95:
@@ -177,6 +179,8 @@ class bicluster:
         return all_resids - resid
 
     def compute_network_density( self, network ):
+        if len(self.rows) <= 0:
+            return NA
         return funcs.subnetwork_density( self.rows, network )
 
     def compute_network_density_deltas( self, network, all_genes ):
@@ -218,7 +222,7 @@ class bicluster:
         return self
 
     def compute_meme_pval( self ):
-        if np.size(self.mast_out,0) <= 0:
+        if np.size(self.mast_out,0) <= 0 or len(self.rows) <= 0:
             return NA
         df = self.mast_out.ix[ self.rows ] ## make sure index of mast_out is Gene !!! Done - in bicluster.re_meme()
         mn = np.nanmean( np.log10( df['P-value'] ) )
@@ -246,6 +250,7 @@ class bicluster:
         is_in = np.in1d( all_genes, self.rows )
         lr = len(self.rows)
         score_vr = np.array( [ (+1.0 if i else -1.0) * ( thresh - lr ) for i in is_in ] )
+        score_vr = score_vr**3.0
         if lr >= thresh - 7 and lr <= thresh + 7:
             score_vr /= 5.0
         elif lr >= thresh - 12 and lr <= thresh + 12:
@@ -266,9 +271,9 @@ class bicluster:
     def get_row_count_scores( self, all_genes, counts_g ):
         is_in = np.in1d( all_genes, self.rows )
         score_g = bicluster.get_cluster_row_count_scores( counts_g )
-        score_g = np.array( [ (+score_g[all_genes[i]] if is_in[i] else -score_g[all_genes[i]]) \
+        score_g2 = np.array( [ (-score_g[all_genes[i]] if is_in[i] else +score_g[all_genes[i]]) \
                                   for i in xrange(len(is_in)) ] )
-        return score_g
+        return score_g2
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
@@ -382,7 +387,8 @@ class bicluster:
     @staticmethod
     def get_cluster_row_count_scores( counts_g ):
         thresh = params.avg_clusters_per_gene ##1.3 ## 2.0 ## 3.0 ## lower is better; coerce removing if gene is in more than 2 clusters
-        return dict( { (i,j-thresh) for i,j in counts_g.items() } )
+        pow_to_use = 1.0 ## 3.0
+        return dict( { (i,(j-thresh)**pow_to_use) for i,j in counts_g.items() } )
 
     ## TBD: write a generic update scores function that tests "update_func" (e.g. compute_resid) if a
     ##    each gene is added/removed from the cluster

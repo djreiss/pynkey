@@ -110,27 +110,29 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
     print 'CLUSTS PER COL:', out_df.CLUSTS_PER_COL[0], ' +/- ', np.nanstd(tmp)
     return out_df
 
-def checkpoint( fname ):
+## save out everything in params.* and globals.*
+def checkpoint( fname, verbose=False ):
     import params,globals ## for loading/saving environment
-    ## first build up a big dict with all items you want to save
     import cPickle as pickle
     import gzip
-    d = dict()
+    d = dict() ## first build up a big dict with all items to be saved
     for k,v in params.__dict__.items(): ## save everything from params
         if k.startswith('__'): continue;
         if ( type(v) == type(pickle) ): continue; ## module type
-        print 'Saving:', k, type(k)
+        if verbose: 
+            print 'Saving:', k, type(k)
         d[ 'params.%s'%k ] = v
     for k,v in globals.__dict__.items(): ## save everything from params
         if k.startswith('__'): continue;
         if ( type(v) == type(pickle) ): continue; ## module type
-        print 'Saving:', k, type(v)
+        if verbose:
+            print 'Saving:', k, type(v)
         d[ 'globals.%s'%k ] = v
     f = gzip.open( fname, 'wb' )
     pickle.dump( d, f, pickle.HIGHEST_PROTOCOL ) ## dump the dict
     f.close()
 
-def load_checkpoint( fname ): ## use 'exec' to load the values
+def load_checkpoint( fname, verbose=False ): ## use 'exec' to load the values
     import params, globals ## for loading/saving environment ... need to allow for loading globals without running init
     ## trick from http://lucumr.pocoo.org/2011/2/1/exec-in-python/
     import cPickle as pickle
@@ -139,7 +141,8 @@ def load_checkpoint( fname ): ## use 'exec' to load the values
     dd = pickle.load( f ) ## read the dict
     f.close()
     for k,v in dd.items():
-        print 'Loading: %s' % k
+        if verbose:
+            print 'Loading: %s' % k
         code = compile('%s = v' % k, '<string>', 'exec')
         exec code
 

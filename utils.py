@@ -83,3 +83,21 @@ def sdize_vector( vec, ignore_zeroes=True ): ## note this is inplace! If don't w
 
 def minmax( vec ):
     return (np.nanmin(vec), np.nanmax(vec))
+
+from matplotlib import pyplot as plt
+
+def setup_text_plots(fontsize=8, usetex=True):
+    """
+    This function adjusts matplotlib settings so that all figures in the
+    textbook have a uniform format and look.
+    """
+    import matplotlib
+    matplotlib.rc('legend', fontsize=fontsize, handlelength=3)
+    matplotlib.rc('axes', titlesize=fontsize)
+    matplotlib.rc('axes', labelsize=fontsize)
+    matplotlib.rc('xtick', labelsize=fontsize)
+    matplotlib.rc('ytick', labelsize=fontsize)
+    matplotlib.rc('text', usetex=usetex)
+    matplotlib.rc('font', size=fontsize, family='serif',
+                  style='normal', variant='normal',
+                  stretch='normal', weight='normal')
