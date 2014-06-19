@@ -120,12 +120,11 @@ def checkpoint( fname ):
         if k.startswith('__'): continue;
         if ( type(v) == type(pickle) ): continue; ## module type
         print 'Saving:', k, type(k)
-        ##exec '%s = v' % k
         d[ 'params.%s'%k ] = v
     for k,v in globals.__dict__.items(): ## save everything from params
         if k.startswith('__'): continue;
         if ( type(v) == type(pickle) ): continue; ## module type
-        print 'Saving:', k, type(k)
+        print 'Saving:', k, type(v)
         d[ 'globals.%s'%k ] = v
     f = gzip.open( fname, 'wb' )
     pickle.dump( d, f, pickle.HIGHEST_PROTOCOL ) ## dump the dict
