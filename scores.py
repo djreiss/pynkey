@@ -21,8 +21,10 @@ def get_score_weights(iter, ratios):
     mc = params.max_column_weight
     nit = params.n_iters
     weight_r =   1.0
-    weight_n =   0.0 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
-    weight_m =  (1.0 +  mm * float(iter-1) / nit) * (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
+    ## GOOD: weight_n =   0.0 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
+    ## GOOD: weight_m =  (1.0 +  mm * float(iter-1) / nit) * (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
+    weight_n =   0.5 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
+    weight_m =  (0.5 +  mm * float(iter-1) / nit) ##* (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
     weight_c =   0.0 +  mc * np.size(ratios,0)/np.size(ratios,1)/12.0 ## ??? ## 1.2 works good for hpy
     weight_v =   0.1 +  mv * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
     weight_g =   0.1 +  mg * float(iter-1) / nit  ## ramp up from 0.3 to 0.8

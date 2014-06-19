@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 
 print 'importing params'
@@ -8,13 +7,21 @@ nthreads = None ## 1 to not parallelize; None to automatically use all available
 #def undefined(var):
 #    var not in vars() and var not in globals()
 
+## set random seed here!
+import time
+import random
+random_seed = int(time.time()*1e6)
+print 'RANDOM SEED:', random_seed
+np.random.seed( random_seed )
+random.seed( random_seed ) ## I dont know if I use non-numpy random, but do it here just in case
+
 #if undefined('organism'):
 organism = 'Hpy'
 #organism = 'Eco'
 #organism = 'Sce'
 #organism = 'Mpn'
 
-print organism
+print 'ORGANISM:', organism
 
 #if undefined('k_clust'):
 if organism == 'Hpy':
