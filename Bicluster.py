@@ -249,7 +249,7 @@ class bicluster:
         is_in = np.in1d( all_genes, self.rows )
         lr = len(self.rows)
         score_vr = np.array( [ (+1.0 if i else -1.0) * ( thresh - lr ) for i in is_in ] )
-        score_vr = score_vr**3.0
+        score_vr = score_vr**3.0 ## 1.0
         if lr >= thresh - 7 and lr <= thresh + 7:
             score_vr /= 5.0
         elif lr >= thresh - 12 and lr <= thresh + 12:

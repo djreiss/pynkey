@@ -60,7 +60,7 @@ max_network_weight = 3.0 ##29.0  ##0.9
 max_motif_weight =   5.0 ##38.0 ##1.8
 max_volume_weight =  3.0 ##0.3
 max_clusters_per_gene_weight = 3.0 ##0.1
-max_column_weight = 0.2
+max_column_weight = 1.0 ##0.2
 
 avg_genes_per_cluster = 22
 avg_clusters_per_gene = 1.3
