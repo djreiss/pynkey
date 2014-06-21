@@ -1,5 +1,7 @@
 import scipy.weave
 
+print 'importing weaved'
+
 def fast_resid( rats ):
 
     code = """

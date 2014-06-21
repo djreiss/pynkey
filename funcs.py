@@ -63,7 +63,15 @@ def subnetwork_density( rows, network ):
 from collections import Counter
 import resource
 
-def print_cluster_stats( clusters, ratios, iter, startTime ):
+def print_cluster_stats( clusters, ratios, iter, startTime, n_tries=0, n_improvements=0, 
+                         changed_rows=0, changed_cols=0 ):
+    weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
+    print 'ITER:', iter
+    print 'r0: %.3f; n0: %.3f; m0: %.3f; c0: %.3f; v0: %.3f, g0: %.3f' % ( weight_r, weight_n, weight_m, 
+                                                                           weight_c, weight_v, weight_g )
+    print 'N_MOVES:', n_tries
+    print 'N_IMPROVEMENTS:', n_improvements
+
     time_elapsed = datetime.datetime.now() - startTime ## seconds
 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
@@ -77,16 +85,16 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
 
     out_df = pd.DataFrame( { 'iter': [iter], 'time': [time_elapsed], 'mem_used': tmp, 
                           'r0': [weight_r], 'n0': [weight_n], 'm0': [weight_m], 
-                          'c0': [weight_c], 'v0': [weight_v] } )
+                          'c0': [weight_c], 'v0': [weight_v], 'g0': [weight_g] } )
     tmp = np.array([len(clusters[k].rows) for k in xrange(len(clusters))])
-    out_df['ROWS'] = np.nanmean(tmp)
-    print 'ROWS:', out_df.ROWS[0], ' +/- ', np.nanstd(tmp)
+    out_df['ROWS'] = np.nanmean(tmp[tmp>1])
+    print 'ROWS:', out_df.ROWS[0], ' +/- ', np.nanstd(tmp[tmp>1])
     tmp = np.array([len(clusters[k].cols) for k in xrange(len(clusters))])
-    out_df['COLS'] = np.nanmean(tmp)
-    print 'COLS:', out_df.COLS[0], ' +/- ', np.nanstd(tmp)
+    out_df['COLS'] = np.nanmean(tmp[tmp>1])
+    print 'COLS:', out_df.COLS[0], ' +/- ', np.nanstd(tmp[tmp>1])
     tmp = np.array([clusters[k].resid for k in xrange(len(clusters))])
-    out_df['RESID'] = np.nanmean(tmp)
-    print 'MEAN RESID:', out_df.RESID[0], ' +/- ', np.nanstd(tmp)
+    out_df['RESID'] = np.nanmean(tmp[tmp>0.001])
+    print 'MEAN RESID:', out_df.RESID[0], ' +/- ', np.nanstd(tmp[tmp>0.001])
     tmp = np.array([clusters[k].dens_string for k in xrange(len(clusters))])
     out_df['STRING_DENS'] = np.nanmean(tmp)
     print 'MEAN STRING DENS:', out_df.STRING_DENS[0], ' +/- ', np.nanstd(tmp)
@@ -108,6 +116,13 @@ def print_cluster_stats( clusters, ratios, iter, startTime ):
     tmp = np.array(c.values())
     out_df['CLUSTS_PER_COL'] = np.nanmean(tmp)
     print 'CLUSTS PER COL:', out_df.CLUSTS_PER_COL[0], ' +/- ', np.nanstd(tmp)
+
+    out_df['N_MOVES'] = n_tries
+    out_df['N_IMPROVEMENTS'] = n_improvements
+    out_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
+    out_df['N_CLUSTS_CHANGED_COLS'] = changed_cols
+    print 'N_CLUSTS_CHANGED (ROWS): ', out_df.N_CLUSTS_CHANGED_ROWS[0]
+    print 'N_CLUSTS_CHANGED (COLS): ', out_df.N_CLUSTS_CHANGED_COLS[0]
     return out_df
 
 ## save out everything in params.* and globals.*
@@ -148,15 +163,15 @@ def load_checkpoint( fname, verbose=False ): ## use 'exec' to load the values
 
 def clusters_to_dataFrame( clusters ):
     out = {}
-    for k in xrange(1,len(clusters)):
+    for k in xrange(0,len(clusters)):
         b = clusters[k]
-        out_r = pd.DataFrame( { 'k': [k],
+        out_r = pd.DataFrame( { 'k': [k+1],
                                 'rows': ','.join(b.rows),
                                 'resid': [b.resid],
                                 'dens_string': [b.dens_string],
                                 'meanp_meme': [b.meanp_meme],
                                 'cols': ','.join(b.cols),
-                                'meme_out': '' if b.meme_out == '' else '<<<<>>>>'.join('\n'.split(b.meme_out)) } )
+                                'meme_out': '' if b.meme_out == '' else '<<<<>>>>'.join(b.meme_out.split('\n')) } )
         out[k] = out_r
     out = pd.concat( out.values() )
     return out

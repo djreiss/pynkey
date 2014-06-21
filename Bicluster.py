@@ -274,26 +274,31 @@ class bicluster:
                                   for i in xrange(len(is_in)) ] )
         return score_g2
 
-    ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     ## TBD: check "changed" (rows=0, cols=1) and only recompute if True; then set "changed" to False. 
     ## Note residual stuff needs to be computed if *either* rows *or* columns have changed.
-    def fill_all_scores(self, iter, all_genes, ratios, string_net, counts_g, all_cols, force=False):
+    def fill_all_scores(self, iter, all_genes, ratios, string_net, all_cols=None, force=False, do_deltas=True, 
+                        verbose=True):
         weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )
         if not force and np.all(np.invert(self.changed)):
             return self
-        print self.k, self.changed
-        if weight_r > 0:
+        if verbose:
+            print self.k, self.changed
+        if force or weight_r > 0:
             self.resid = self.compute_residue( ratios )  ## do this if *either* rows or cols changed
-            self.scores_r = self.compute_residue_deltas( ratios, all_genes )
-            self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
+            if do_deltas:
+                self.scores_r = self.compute_residue_deltas( ratios, all_genes )
+                self.scores_c = self.compute_residue_deltas( ratios, all_cols, actually_cols=True )
         if self.changed[0] or force:
-            if weight_m > 0 and self.meme_out != '':
+            if ( force or weight_m > 0 ) and self.meme_out != '':
                 self.meme_pval = self.compute_meme_pval()
-                self.scores_m = self.compute_meme_pval_deltas( all_genes )
-            if abs(weight_n) > 0:
+                if do_deltas:
+                    self.scores_m = self.compute_meme_pval_deltas( all_genes )
+            if force or abs(weight_n) > 0:
                 self.dens_string = self.compute_network_density( string_net )
-                self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
-        self.changed[0] = self.changed[1] = False
+                if do_deltas:
+                    self.scores_n = self.compute_network_density_deltas( string_net, all_genes )
+        if do_deltas:
+            self.changed[0] = self.changed[1] = False
         return self
 
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
@@ -402,7 +407,7 @@ class bicluster:
     #     counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
     #     for k in clusters:
     #         print 'FILL: %s' % k
-    #         clusters[k].fill_all_scores(iter, all_genes, ratios, string_net, counts_g, ratios.columns.values)
+    #         clusters[k].fill_all_scores(iter, all_genes, ratios, string_net, ratios.columns.values)
     #     return clusters
 
     ## THis is a static function so outside the definition of the bicluster
@@ -432,7 +437,7 @@ class bicluster:
     #     global clusters, all_genes, ratios, string_net, counts_g, ratios
     #     print k
     #     clust = clusters[k]
-    #     clust.fill_all_scores(all_genes, ratios, string_net, counts_g, ratios.columns.values)
+    #     clust.fill_all_scores(all_genes, ratios, string_net, ratios.columns.values)
     #     return clust
 
 import globals as glb
@@ -455,8 +460,7 @@ def fill_all_scores_par( clust ):
         n_mots = meme.get_n_motifs( glb.iter, params.n_iters )
         clust.re_meme( params.distance_search, glb.allSeqs_fname, glb.anno, glb.genome_seqs, 
                        glb.op_table, params.motif_width_range, n_motifs=n_mots )
-    clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, glb.counts_g, 
-                          glb.ratios.columns.values)
+    clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, glb.ratios.columns.values)
     clust.changed[0] = clust.changed[1] = False
     return clust
 

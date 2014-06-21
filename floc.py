@@ -287,16 +287,7 @@ def run(clusters, iter, all_genes, ratios, string_net):
     glb.clusters = clusters ## need to do this before the parallelized call:
     clusters = bic.fill_all_cluster_scores_par(clusters, threads=nthreads)
     glb.clusters = clusters
-    print 'ITER:', iter
-    print 'r0: %.3f; n0: %.3f; m0: %.3f; c0: %.3f; v0: %.3f, g0: %.3f' % ( weight_r, weight_n, weight_m, 
-                                                                           weight_c, weight_v, weight_g )
-    print 'N_MOVES:', n_tries
-    print 'N_IMPROVEMENTS:', n_improvements
-    stats_df = funcs.print_cluster_stats(clusters, ratios, iter, glb.startTime )
-    stats_df['N_MOVES'] = n_tries
-    stats_df['N_IMPROVEMENTS'] = n_improvements
-    stats_df['N_CLUSTS_CHANGED_ROWS'] = changed_rows
-    stats_df['N_CLUSTS_CHANGED_COLS'] = changed_cols
-    print 'N_CLUSTS_CHANGED (ROWS): ', stats_df.N_CLUSTS_CHANGED_ROWS[0]
-    print 'N_CLUSTS_CHANGED (COLS): ', stats_df.N_CLUSTS_CHANGED_COLS[0]
+
+    stats_df = funcs.print_cluster_stats(clusters, ratios, iter, glb.startTime, n_tries, n_improvements,
+                                         changed_rows, changed_cols)
     return (clusters, n_improvements, stats_df)

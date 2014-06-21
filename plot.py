@@ -2,11 +2,13 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
+print 'importing plot'
+
 import globals
 
 def plot_stats():
     stats = globals.stats_df
-    stats.head()
+    print stats.tail()
 
 ## This is a good intro to pandas dataframes
 ## http://pandas.pydata.org/pandas-docs/stable/10min.html
@@ -21,12 +23,14 @@ def plot_stats():
         """
         import matplotlib
         matplotlib.rc('legend', fontsize=fontsize, handlelength=3)
-        matplotlib.rc('axes', titlesize=fontsize)
-        matplotlib.rc('axes', labelsize=fontsize)
+        matplotlib.rc('axes', titlesize=fontsize, labelsize=fontsize)
         matplotlib.rc('xtick', labelsize=fontsize)
         matplotlib.rc('ytick', labelsize=fontsize)
         matplotlib.rc('text', usetex=usetex)
-        matplotlib.rc('font', size=fontsize, family='serif',
+        ## see https://stackoverflow.com/questions/12322738/how-do-i-change-the-axis-tick-font-in-a-matplotlib-plot-when-rendering-using-lat
+        ##matplotlib.rc('text.latex', preamble=r'\usepackage{cmbright}')
+        matplotlib.rc('mathtext', fontset='stixsans')
+        matplotlib.rc('font', size=fontsize, family='sans-serif',
                       style='normal', variant='normal',
                       stretch='normal', weight='normal')
         
@@ -43,7 +47,7 @@ def plot_stats():
     ax1.set_ylabel('Residual')
     ax1.set_xlabel('Iteration')
 
-    ax2 = fig.add_subplot(3,3,2, sharex=ax1)
+    ax2 = fig.add_subplot(3,3,2) ##, sharex=ax1)
     vals = stats[["iter", "MEME_PVAL"]].dropna(how="any").values
     ax2.plot(vals[:, 0], vals[:, 1], **plot_kwargs)
     ax2.set_ylabel('Motif p-value')
@@ -55,26 +59,40 @@ def plot_stats():
     ax3.set_ylabel('Avg STRING Network Density')
     ax3.set_xlabel('Iteration')
 
-    ax4 = fig.add_subplot(3,3,4, sharex=ax1)
-    vals = stats[["iter", "r0"]].dropna(how="any").values
+    ax4 = fig.add_subplot(3,3,4)
     plot_kwargs = dict(marker=',')
+    vals = stats[["iter", "r0"]].dropna(how="any").values
     ax4.plot(vals[:, 0], vals[:, 1], color='k', **plot_kwargs)
     vals = stats[["iter", "m0"]].dropna(how="any").values
     ax4.plot(vals[:, 0], vals[:, 1], color='r', **plot_kwargs)
     vals = stats[["iter", "n0"]].dropna(how="any").values
     ax4.plot(vals[:, 0], vals[:, 1], color='g', **plot_kwargs)
+    vals = stats[["iter", "c0"]].dropna(how="any").values
+    ax4.plot(vals[:, 0], vals[:, 1]/10.0, color='b', **plot_kwargs)
+    vals = stats[["iter", "v0"]].dropna(how="any").values
+    ax4.plot(vals[:, 0], vals[:, 1], color='c', **plot_kwargs)
+    vals = stats[["iter", "g0"]].dropna(how="any").values
+    ax4.plot(vals[:, 0], vals[:, 1], color='m', **plot_kwargs)
     ax4.set_xlabel('Iteration')
+    ax4.set_ylabel('Scaling')
 
-    text_kwargs = dict(transform=plt.gca().transAxes,
-                       ha='center', va='bottom')
-    ax4.text(0.20, 0.95, 'Row scaling', color='k', **text_kwargs)
-    ax4.text(0.50, 0.95, 'Mot scaling', color='r', **text_kwargs)
-    ax4.text(0.80, 0.95, 'Net scaling', color='g', **text_kwargs)
+    text_kwargs = dict(transform=plt.gca().transAxes, ha='center', va='bottom')
+    ax4.text(0.12, 0.9, 'r0', color='k', **text_kwargs)
+    ax4.text(0.24, 0.9, 'm0', color='r', **text_kwargs)
+    ax4.text(0.36, 0.9, 'n0', color='g', **text_kwargs)
+    ax4.text(0.48, 0.9, 'c0/10', color='b', **text_kwargs)
+    ax4.text(0.60, 0.9, 'v0', color='c', **text_kwargs)
+    ax4.text(0.72, 0.9, 'g0', color='m', **text_kwargs)
     
-    ax2a = fig.add_subplot(3,3,5, sharex=ax1)
+    ax2a = fig.add_subplot(3,3,5) ##, sharex=ax1)
     vals = stats[["iter", "ROWS"]].dropna(how="any").values
-    ax2a.plot(vals[:, 0], vals[:, 1], **plot_kwargs)
-    ax2a.set_ylabel('Avg Num Genes')
+    ax2a.plot(vals[:, 0], vals[:, 1], color='b', **plot_kwargs)
+    vals = stats[["iter", "COLS"]].dropna(how="any").values
+    ax2a.plot(vals[:, 0], vals[:, 1], color='r', **plot_kwargs)
+    ax2a.set_ylabel('Avg Number')
+    text_kwargs = dict(transform=plt.gca().transAxes, ha='center', va='bottom')
+    ax2a.text(0.25, 0.9, 'Rows', color='b', **text_kwargs)
+    ax2a.text(0.75, 0.9, 'Cols', color='r', **text_kwargs)
     ax2a.set_xlabel('Iteration')
     
     ## Plot histograms of #genes, #conds in each bicluster
@@ -88,8 +106,8 @@ def plot_stats():
     plt.hist( ncols, 20, color='r' )
     text_kwargs = dict(transform=plt.gca().transAxes,
                        ha='center', va='bottom')
-    ax4.text(0.20, 0.95, 'Rows', color='k', **text_kwargs)
-    ax4.text(0.80, 0.95, 'Cols', color='r', **text_kwargs)
+    ax4a.text(0.20, 0.9, 'Rows', color='b', **text_kwargs)
+    ax4a.text(0.80, 0.9, 'Cols', color='r', **text_kwargs)
 
     ax5 = fig.add_subplot(3,3,7)
     vals = stats[["iter", "N_MOVES"]].dropna(how="any").values
@@ -98,24 +116,26 @@ def plot_stats():
     ax5.plot(vals[:, 0], vals[:, 1], color='r', **plot_kwargs)
     text_kwargs = dict(transform=plt.gca().transAxes,
                        ha='center', va='bottom')
-    ax5.text(0.20, 0.95, 'Num Moves', color='k', **text_kwargs)
-    ax5.text(0.70, 0.95, 'Num Improvements', color='r', **text_kwargs)
+    ax5.text(0.20, 0.9, 'Num Moves', color='k', **text_kwargs)
+    ax5.text(0.70, 0.9, 'Num Improvements', color='r', **text_kwargs)
     ax5.set_xlabel('Iteration')
     ax5.set_ylabel('Count')
 
     ax5a = fig.add_subplot(3,3,8)
     resids = np.array( [c.resid for c in globals.clusters.values()] )
     resids = resids[ resids > 0.001 ]
-    plt.hist( resids, 20 )
-    ax5a.set_xlabel('Cluster Residuals')
-    ax5a.set_ylabel('Count')
+    if len(resids) > 0:
+        plt.hist( resids, 20 )
+        ax5a.set_xlabel('Cluster Residuals')
+        ax5a.set_ylabel('Count')
 
     ax6 = fig.add_subplot(3,3,9)
     pclusts = np.array( [c.meanp_meme for c in globals.clusters.values()] )
     pclusts = pclusts[ ~np.isnan(pclusts) & ~np.isinf(pclusts) ]
-    plt.hist( pclusts, 20 )
-    ax6.set_xlabel('Cluster Mean log10(P-value)s')
-    ax6.set_ylabel('Count')
+    if len(pclusts) > 0:
+        plt.hist( pclusts, 20 )
+        ax6.set_xlabel('Cluster Mean log10(P-value)s')
+        ax6.set_ylabel('Count')
 
     plt.show()
 

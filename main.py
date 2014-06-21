@@ -8,6 +8,7 @@ from params import n_iters,nthreads,organism
 import funcs
 import globals as glb
 import init
+import plot
 
 def run_pynkey(iter):
     n_no_improvements = 0
@@ -25,6 +26,7 @@ def run_pynkey(iter):
             clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
             warnings.warn( 'Writing out everything to output/%s.pkl' % organism )
             funcs.checkpoint( 'output/%s.pkl' % organism )
+            ##plot.plot_stats() ## probably should add a 'DO_PLOT' file option DOESNT WORK
 
         n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
         n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )
@@ -36,6 +38,13 @@ def finish():
     from Bicluster import bicluster
 
     print 'DONE!'
+
+    for ind,cluster in glb.clusters.items(): ## finalize the clusters internal stats (resid, etc)
+        clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, force=True, do_deltas=False)
+
+    stats_tmp = funcs.print_cluster_stats(glb.clusters, glb.ratios, glb.iter, glb.startTime)
+    glb.stats_df = glb.stats_df.append( stats_tmp )
+
     glb.endTime = datetime.datetime.now()
     print str(glb.endTime)
     print str(glb.endTime - glb.startTime) + ' seconds since initialization'
@@ -78,6 +87,8 @@ if __name__ == '__main__':
     #clusters = fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
     ## weird - if I move this to glb.py, then it gets locked up.
     glb.clusters = fill_all_cluster_scores_par(glb.clusters, threads=nthreads)
+    stats_tmp = funcs.print_cluster_stats(glb.clusters, glb.ratios, 1, glb.startTime)
+    glb.stats_df = glb.stats_df.append( stats_tmp )
 
     # NOTE: run_pynkey() which calls floc.get_floc_scores_all() fills all the cluster scores at the beginning    
     glb.iter = run_pynkey(glb.iter) ## Note this function can be run like this to restart from current iter
