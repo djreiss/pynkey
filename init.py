@@ -27,6 +27,7 @@ def init( from_pickle_file=None ):
 
     if from_pickle_file is not None:
         from funcs import load_checkpoint
+        print 'Loading checkpoint file:', from_pickle_file
         load_checkpoint( from_pickle_file )
         print str(glb.startTime)
 
