@@ -18,7 +18,7 @@ print 'importing floc'
 
 ## Get gain scores for all possible row/col moves
 ## Default: allow best 5 row- and 20 col- moves per bicluster instead of all of them!
-def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, max_col=9999): ##5, max_col=20): 
+def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=50, max_col=200): ##9999, max_col=9999): ##5, max_col=20): 
     ## First, collate move scores into a single DataFrame for stochastic sorting
     ## Use pd.DataFrame for scores rather than matrix
 
@@ -66,7 +66,7 @@ def get_scores_all(clusters, iter, all_genes, ratios, string_net, max_row=9999, 
 
 # ## Instead of scores for ALL possible moves, make a matrix of n_best best scores for each row/col
 def get_scores_best( all_scores, n_best_row=3, n_best_col=6 ):
-    df_r = all_scores[ all_scores.is_row_col == 'r' ]
+    df_r = all_scores[ all_scores.rc == 'r' ]
     if n_best_row < 9999:
         tmp = df_r.groupby( 'row_col' ) ## Cool!
         dfs_r = {i:pd.DataFrame() for i,df in tmp}
@@ -74,7 +74,9 @@ def get_scores_best( all_scores, n_best_row=3, n_best_col=6 ):
             tmp2a = tmp2.sort( 'combined' )[ 0:n_best_row ]
             dfs_r[r] = tmp2a
 
-    df_c = all_scores[ all_scores.is_row_col == 'c' ]
+    dfs_r = pd.concat(dfs_r, ignore_index=True)
+
+    df_c = all_scores[ all_scores.rc == 'c' ]
     if n_best_col < 9999:
         tmp = df_c.groupby( 'row_col' ) ## Cool!
         dfs_c = {i:pd.DataFrame() for i,df in tmp}
@@ -82,7 +84,13 @@ def get_scores_best( all_scores, n_best_row=3, n_best_col=6 ):
             tmp2a = tmp2.sort( 'combined' )[ 0:n_best_col ]
             dfs_c[r] = tmp2a
 
-    scores_out = pd.concat( [ pd.concat( dfs_r ), pd.concat( dfs_c ) ], ignore_index=True )
+    dfs_c = pd.concat(dfs_c, ignore_index=True)
+
+    ## Make an equal number of cols get moved as rows are moved...
+    dfs_r.combined = ut.sdize_vector( dfs_r.combined )
+    dfs_c.combined = ut.sdize_vector( dfs_c.combined )
+
+    scores_out = pd.concat( [ dfs_r, dfs_c ], ignore_index=True )
     return scores_out
 
 ## Native code: 119s
@@ -204,17 +212,17 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
         kUpd = sc.k
         cc = new_clusters[kUpd].copy(deep=False)
         row_col = sc.row_col
-        if sc.is_row_col == 'r':
+        if sc.rc == 'r':
             ##if sc.is_in && len(cc.rows) <= min_rows: continue ## Don't remove if we're already at the min. Now: use volume score instead
             cc.rows = cc.rows[ cc.rows != row_col ] if sc.is_in else np.append( cc.rows, row_col )
             cc.changed[0] = True
-        elif sc.is_row_col == 'c':
+        elif sc.rc == 'c':
             cc.cols = cc.cols[ cc.cols != row_col ] if sc.is_in else np.append( cc.cols, row_col )
             cc.changed[1] = True
 
         cc.resid = cc.compute_residue( ratios )
         all_resids[kUpd] = cc.resid
-        if sc.is_row_col == 'r':  ## Only update network/motif scores if it's a row, duh!
+        if sc.rc == 'r':  ## Only update network/motif scores if it's a row, duh!
             if abs(weight_n) > 0:            ## only compute if need to
                 cc.dens_string = cc.compute_network_density( string_net )
                 all_dens_string[kUpd] = cc.dens_string
@@ -249,7 +257,7 @@ def update(clusters, iter, all_genes, ratios, string_net, max_no_improvements=25
             saved_clusters = funcs.copy_clusters( new_clusters, deep=False ) ## make a copy to keep the best update
             output = '%d %.4f %.4f %.4f %.4f %d %c %s %s %.4f %.4f %.4f %d %d %d' % \
                 (i, mean_resid, mean_dens_string, mean_meanp_meme, score_delta, ##mean_scores,
-                 kUpd, sc.is_row_col, 'remove' if sc.is_in else 'add', row_col, 
+                 kUpd, sc.rc, 'remove' if sc.is_in else 'add', row_col, 
                  cc.resid, clusters[kUpd].resid, cc.resid-clusters[kUpd].resid, 
                  n_tries, n_improvements, no_improvements)
             print output
