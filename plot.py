@@ -6,6 +6,24 @@ print 'importing plot'
 
 import globals
 
+def setup_text_plots(fontsize=8, usetex=True):
+    """
+    This function adjusts matplotlib settings so that all figures in the
+    textbook have a uniform format and look.
+    """
+    import matplotlib
+    matplotlib.rc('legend', fontsize=fontsize, handlelength=3)
+    matplotlib.rc('axes', titlesize=fontsize, labelsize=fontsize)
+    matplotlib.rc('xtick', labelsize=fontsize)
+    matplotlib.rc('ytick', labelsize=fontsize)
+    matplotlib.rc('text', usetex=usetex)
+    ## see https://stackoverflow.com/questions/12322738/how-do-i-change-the-axis-tick-font-in-a-matplotlib-plot-when-rendering-using-lat
+    ##matplotlib.rc('text.latex', preamble=r'\usepackage{cmbright}')
+    matplotlib.rc('mathtext', fontset='stixsans')
+    matplotlib.rc('font', size=fontsize, family='sans-serif',
+                  style='normal', variant='normal',
+                  stretch='normal', weight='normal')
+
 def plot_stats():
     stats = globals.stats_df
     print stats.tail()
@@ -15,24 +33,6 @@ def plot_stats():
 
 ## try plotting it. using astroML/book_figures/chapter1/fig_SDSS_imaging.py as an example
 ## this fuinction sets up the plots to look the same as in the astroML text
-
-    def setup_text_plots(fontsize=8, usetex=True):
-        """
-        This function adjusts matplotlib settings so that all figures in the
-        textbook have a uniform format and look.
-        """
-        import matplotlib
-        matplotlib.rc('legend', fontsize=fontsize, handlelength=3)
-        matplotlib.rc('axes', titlesize=fontsize, labelsize=fontsize)
-        matplotlib.rc('xtick', labelsize=fontsize)
-        matplotlib.rc('ytick', labelsize=fontsize)
-        matplotlib.rc('text', usetex=usetex)
-        ## see https://stackoverflow.com/questions/12322738/how-do-i-change-the-axis-tick-font-in-a-matplotlib-plot-when-rendering-using-lat
-        ##matplotlib.rc('text.latex', preamble=r'\usepackage{cmbright}')
-        matplotlib.rc('mathtext', fontset='stixsans')
-        matplotlib.rc('font', size=fontsize, family='sans-serif',
-                      style='normal', variant='normal',
-                      stretch='normal', weight='normal')
         
     setup_text_plots(fontsize=8, usetex=True)
 
@@ -53,7 +53,7 @@ def plot_stats():
     ax2.set_ylabel('Motif p-value')
     ax2.set_xlabel('Iteration')
 
-    ax3 = fig.add_subplot(3,3,3, sharex=ax1)
+    ax3 = fig.add_subplot(3,3,3)
     vals = stats[["iter", "STRING_DENS"]].dropna(how="any").values
     ax3.plot(vals[:, 0], vals[:, 1], **plot_kwargs)
     ax3.set_ylabel('Avg STRING Network Density')
@@ -139,9 +139,28 @@ def plot_stats():
 
     plt.show()
 
+# def plot_scores(scores): ## plot scores dataframe from floc.get_scores_all()
+#     setup_text_plots(fontsize=8, usetex=True)
+
+#     ##plot_kwargs = dict(color='k', linestyle='none', marker=',')
+#     plot_kwargs = dict(color='k', marker=',')
+#     plt.close() ## close previous window if exists
+#     fig = plt.figure(figsize=(10, 8))
+
+#     ax1 = fig.add_subplot(3,3,1)
+#     ax1.plot(stats.iter, stats.RESID, **plot_kwargs)
+#     ax1.set_ylabel('Residual')
+#     ax1.set_xlabel('Iteration')
 
 if __name__ == '__main__':
+    ## see https://docs.python.org/2/library/optparse.html
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-o", "--organism", dest="organism",
+                  help="input organism [default: %default]", metavar="ORGANISM", default='Hpy')
+    (options, args) = parser.parse_args()
+
     import init
-    init.init( 'output/Hpy.pkl' )
+    init.init( 'output/%s.pkl' % options.organism )
     
     plot_stats()
