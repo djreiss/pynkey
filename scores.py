@@ -16,18 +16,19 @@ import utils as ut
 ## Note can make these weights a global var and update them in this function.
 ## Just need to define them as global IN the function
 def get_score_weights(iter, ratios):
+    mr = params.max_resid_weight
     mn = params.max_network_weight
     mm = params.max_motif_weight
     mv = params.max_volume_weight
     mg = params.max_clusters_per_gene_weight
     mc = params.max_column_weight
     nit = params.n_iters
-    weight_r =   1.0
+    weight_r =   0.0 +  mr * 1.0     ## keep constant
     weight_n =   0.0 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
-    weight_m =  (1.0 +  mm * float(iter-1) / nit) * (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
+    weight_m =  (0.0 +  mm * float(iter-1) / nit) * (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
     ## GOOD: weight_n =   0.5 + -mn * float(iter-1) / nit   ## increase linearly from 0 at iter=1 to 0.9
     ## GOOD: weight_m =  (0.5 +  mm * float(iter-1) / nit) ##* (0 if iter<=5 else 1) ## ramp up from 1 to 1.8 starting at iter=6
-    weight_c =   0.0 +  mc * np.size(ratios,0)/np.size(ratios,1)/1.2 ## ??? ## 1.2 works good for hpy
+    weight_c =   0.0 +  mc * np.size(ratios,0)/np.size(ratios,1)/12.0 ## ??? ## 1.2 works good for hpy
     weight_v =   0.1 +  mv * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
     weight_g =   0.1 +  mg * float(iter-1) / nit  ## ramp up from 0.3 to 0.8
     return (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g)
