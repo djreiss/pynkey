@@ -15,6 +15,9 @@ import multiprocessing as mp
 
 print 'importing utils'
 
+def stop():
+    raise 'STOPPING ON PURPOSE!'
+
 def do_something_par( items, func, threads=None ): # None ensures that it makes as many threads as avail. in computer
     if threads == 1:
         out = map(func, items)
@@ -32,6 +35,21 @@ def writeLines( lines, fname=None ):
     handle.write('\n'.join(lines)) ## assumes lines are an array split by '\n' - if not then do '\n'.join(lines) first
     handle.close()
     return fname
+
+def readLines( fname ):
+    fo = open( fname, 'r' )
+    lines = fo.readlines()
+    fo.close()
+    return lines
+
+def table( arr ):
+    from collections import Counter
+    c = Counter( arr )
+    return c ## can be used like a dict.
+
+def reverse_dict( d ): ## reverse keys <-> elements for a dict
+    out = { v:k for k,v in d.items() }
+    return out
  
 def slice_sampler(px, N = 1, x = None):
     """
@@ -71,12 +89,29 @@ def slice_sampler(px, N = 1, x = None):
         return values[0]
     return values
 
-def sdize_vector( vec, ignore_zeroes=True ): ## note this is inplace! If don't want, pass vec.copy() !!
+def mad(arr):
+    """ Median Absolute Deviation: a "Robust" version of standard deviation.
+        Indices variabililty of the sample.
+        https://en.wikipedia.org/wiki/Median_absolute_deviation 
+        Taken from here: https://stackoverflow.com/questions/8930370/where-can-i-find-mad-mean-absolute-deviation-in-scipy
+    """
+    arr = np.ma.array(arr).compressed() # should be faster to not use masked arrays.
+    med = np.median(arr)
+    return np.median(np.abs(arr - med))
+
+## TODO: look into bottleneck package for faster functions:
+##   https://pypi.python.org/pypi/Bottleneck
+def sdize_vector( vec, ignore_zeroes=True, use_median=True ): ## note this is inplace! If don't want, pass vec.copy() !!
     v = vec
     if ignore_zeroes:
         v = vec[ vec != 0 ]
-    mn = np.nanmean( v )
-    sd = np.nanstd( v )
+    if use_median:
+        from scipy.stats import nanmedian
+        mn = nanmedian(v)
+        sd = mad(v)
+    else:
+        mn = np.nanmean( v )
+        sd = np.nanstd( v )
     vec -= mn
     vec /= (sd + 0.001) ## try to minimize copies?
     return vec
