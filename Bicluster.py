@@ -250,19 +250,22 @@ class bicluster:
         lr = len(self.rows)
         score_vr = np.array( [ (+1.0 if i else -1.0) * ( thresh - lr ) for i in is_in ] )
         score_vr = score_vr**3.0 ## 1.0
-        if lr >= thresh - 7 and lr <= thresh + 7:
-            score_vr /= 5.0
-        elif lr >= thresh - 12 and lr <= thresh + 12:
-            score_vr /= 2.0
+        #if lr >= thresh - 7 and lr <= thresh + 7:
+        #    score_vr /= 5.0
+        #elif lr >= thresh - 12 and lr <= thresh + 12:
+        #    score_vr /= 2.0
         return score_vr
 
     ## Just up-weight moves that add columns (to prevent shrinkage)
     ## NOTE that as is, the weighting decreases for really high #cols... is this what we want?
+    ## Make the average equal the number of columns / 2
     def get_volume_col_scores( self, all_cols ):
+        thresh = len(all_cols) / 2.0
         is_in = np.in1d( all_cols, self.cols )
         lc = len(self.cols)
-        score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
-        ##score_vc = fill(NA, len(b.scores_c)) ## Do we really care how many cols there are?
+        ##score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
+        score_vc = np.array( [ (+1.0 if i else -1.0) * ( thresh - lc ) for i in is_in ] )
+        ##score_vc = np.repeat(NA, len(self.scores_c)) ## Do we really care how many cols there are?
         return score_vc
 
     ## Up-weight moves OUT if counts_g is HIGH, and moves IN if counts_g is LOW
@@ -315,7 +318,7 @@ class bicluster:
         score_g = self.get_row_count_scores( all_genes, counts_g )
         out = pd.DataFrame( { 'row_col':all_genes,
                               'is_in':is_in,
-                              'is_row_col':np.repeat('r', len(self.scores_r)), ## CANT: move this outside the loop
+                              'rc':np.repeat('r', len(self.scores_r)), ## CANT: move this outside the loop
                               'k':np.repeat(self.k, len(self.scores_r)),
                               'score_r':score_r,
                               'score_n':score_n,
@@ -330,10 +333,10 @@ class bicluster:
         (weight_r, weight_n, weight_m, weight_c, weight_v, weight_g) = scores.get_score_weights( iter, ratios )
         NAs = np.repeat(NA, len(self.scores_c)) ## if weight_c <= 0 else NA
         score_c = self.scores_c if weight_c > 0 else NAs
-        score_vc = self.get_volume_col_scores( all_cols )
+        score_vc = self.get_volume_col_scores( all_cols ) ##  Do we really care how many cols there are?
         out = pd.DataFrame( { 'row_col':all_cols,
                               'is_in':is_in,
-                              'is_row_col':np.repeat('c', len(self.scores_c)), ## CANT: move this outside the loop
+                              'rc':np.repeat('c', len(self.scores_c)), ## CANT: move this outside the loop
                               'k':np.repeat(self.k, len(self.scores_c)),
                               'score_r':score_c,
                               'score_n':NAs, ## CANT: move this outside the loop
