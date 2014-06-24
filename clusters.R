@@ -3,8 +3,8 @@ require(cMonkey)
 #source('~/scratch/biclust/cmonkey.R', chdir=T)
 debug.on()
 
-require(multicore)
-options(cores=4)
+require(parallel)
+options(mc.cores=6)
 
 if ( ! exists( 'organism.dir' ) ) {
   if ( exists( 'organism' ) ) organism.dir <- organism
@@ -16,7 +16,7 @@ x=read.delim(sprintf("output/%s_clusters.tsv", organism.dir))
 if ( ! exists('ratios') ) ratios <- sprintf('~/python/pynkey/%s/ratios.tsv.gz', organism.dir)
 if ( ! exists('n.motifs') ) n.motifs <- 2
 e=cmonkey.init(organism=organism, bg.order=0, k.clust=nrow(x), seed.method=c( rows="rnd", cols="rnd" ),
-  discard.genome=F, parallel.cores=options('cores'), parallel.cores.motif=options('cores'))
+  discard.genome=F, parallel.cores=options('mc.cores')$mc.cores, parallel.cores.motif=options('mc.cores')$mc.cores)
 e$cmonkey.re.seed( e )
 sys.source("~/scratch/biclust/cmonkey-funcs.R",envir=e,chdir=T)
 e$row.score.func='default'
@@ -32,7 +32,6 @@ bg.fname = e$genome.info$bg.fname[ seq.type ]
 #e$meme.scores[[1]] = tmp
 #rm(tmp);gc()
 
-options(cores=4)
 ##for (i in 1:nrow(x)) {
 tmp = mclapply(1:nrow(x), function(i){
   cat(i," ",x$k[i]," ",x$resid[i],"\n")
@@ -43,7 +42,7 @@ tmp = mclapply(1:nrow(x), function(i){
   clust$cols = cols
   clust$resid=x$resid[i]
   meme.out = strsplit(as.character(x$meme_out[i]),"<<<<>>>>")[[1]]
-  if ( length( meme.out ) > 0 ) clust$meme.out = e$getMemeMotifInfo( meme.out )
+  if ( length( meme.out ) > 0 && ! all(is.na(meme.out)) ) clust$meme.out = e$getMemeMotifInfo( meme.out )
   else clust$meme.out = NULL
   ##print(clust$meme.out)
 
@@ -56,7 +55,7 @@ tmp = mclapply(1:nrow(x), function(i){
   }
   list(clust=clust, pv.ev=pv.ev) ## mast.out=mast.out, ## mast.out is too big!
 } )
-rm(x,all.seqs,clust,bg.list,tmp2,bg.fname); gc()
+#rm(x,all.seqs,clust,bg.list,tmp2,bg.fname); gc()
 
 for ( i in 1:length(tmp) ) {
   clust=tmp[[i]]$clust
@@ -76,6 +75,7 @@ for ( i in 1:length(tmp) ) {
 
 rm(tmp); gc()
 
+e$row.score.func <- 'orig'
 e$meme.scores[[seq.type]]$all.pv <- e$make.pv.ev.matrix( e$meme.scores[[seq.type]] )
 
 save( e, file=sprintf('output/%s_out.RData', organism.dir) )
