@@ -9,6 +9,7 @@ import funcs
 import globals as glb
 import init
 import plot
+import floc
 
 def run_pynkey(iter):
     n_no_improvements = 0
@@ -39,7 +40,7 @@ def finish():
 
     print 'DONE!'
 
-    for ind,cluster in glb.clusters.items(): ## finalize the clusters internal stats (resid, etc)
+    for ind,clust in glb.clusters.items(): ## finalize the clusters internal stats (resid, etc)
         clust.fill_all_scores(glb.iter, glb.all_genes, glb.ratios, glb.string_net, force=True, do_deltas=False)
 
     stats_tmp = funcs.print_cluster_stats(glb.clusters, glb.ratios, glb.iter, glb.startTime)
@@ -77,7 +78,6 @@ if __name__ == '__main__':
         init.init()
 
     from Bicluster import fill_all_cluster_scores_par
-    import floc
 
     try:
         os.mkdir( 'output' )
