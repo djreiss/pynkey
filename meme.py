@@ -65,7 +65,7 @@ def do_meme(seqs, motif_width_range, n_motifs=2, verbose=False):
     #if verbose: 
     #    print memeOut.split( '\n')
     return memeOut
-                        
+
 import StringIO
 import re
 
@@ -122,3 +122,22 @@ def do_mast(memeOut, allSeqs_fname, get_allHitsTab=False, verbose=True):
 
     return mastOutTab 
 
+
+## use BioPython to parse meme output!!!
+## can look at record.version/command/sequences/
+## motifs in m=record[0,1] -- can look at m.instances/pssm/evalue even make m.weblogo('file.png')
+## then mot.instances and mot.instances[0].start, etc...
+## see: http://biopython.org/DIST/docs/tutorial/Tutorial.html
+def parseMemeOut(memeOut):
+    from Bio import motifs
+    handle = StringIO.StringIO(memeOut)
+    record = motifs.parse(handle, "meme")
+    handle.close()
+    return record
+
+def parseMastOut(mastOut):
+    from Bio import motifs
+    handle = StringIO.StringIO(mastOut)
+    record = motifs.parse(handle, "mast")
+    handle.close()
+    return record
