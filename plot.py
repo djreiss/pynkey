@@ -152,6 +152,16 @@ def plot_stats():
 #     ax1.set_ylabel('Residual')
 #     ax1.set_xlabel('Iteration')
 
+def plot_motif_logo( memeOut, motInd=1 ):
+    import meme
+    import matplotlib.image as mpimg
+
+    record = meme.parseMemeOut( memeOut )
+    kwargs = dict(color_scheme='classic')
+    record[motInd].weblogo('file.png', color_scheme='color_classic') ## note, can use format='PDF'
+    img = mpimg.imread('file.png')
+    imgplot = plt.imshow( img )
+
 if __name__ == '__main__':
     ## see https://docs.python.org/2/library/optparse.html
     from optparse import OptionParser

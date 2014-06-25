@@ -193,4 +193,3 @@ def clusters_w_func( func, clusters, anno, n_best=1 ):
         genes = genes[ np.in1d(genes, anno.index.values) ]
         print kInd, nhits[kInd], '\n', anno.ix[ np.in1d(anno.index.values,genes), ['desc'] ]
     return kInds
-
