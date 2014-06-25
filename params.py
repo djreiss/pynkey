@@ -121,3 +121,6 @@ distance_search = np.array(distance_search)
 distance_scan = np.array(distance_scan)
 motif_width_range = np.array(motif_width_range)
 
+## if 'all' then use all gene names possible (vs. only those listed in the expression data)
+all_genes_option = 'only_in_expression_data' ## 'all' 
+

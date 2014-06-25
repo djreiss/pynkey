@@ -69,9 +69,14 @@ def pynkey_init(organism, k_clust, ratios_file):
 
     ## build up a list of all genes in the expr. data + in the annotations + in the string network
     all_genes = ratios.index.values ## same as rownames
-    all_genes = np.unique( np.append( all_genes, anno.index.values ) )
-    all_genes = np.unique( np.append( all_genes, [string_net.protein1.values, string_net.protein2.values] ) )
-    all_genes = np.unique( np.append( all_genes, [op_table.SysName1.values, op_table.SysName2.values] ) )
+    if params.all_genes_option == 'all': ## append all gene names found in other data types
+        all_genes = np.unique( np.append( all_genes, anno.index.values ) )
+        all_genes = np.unique( np.append( all_genes, [string_net.protein1.values, string_net.protein2.values] ) )
+        all_genes = np.unique( np.append( all_genes, [op_table.SysName1.values, op_table.SysName2.values] ) )
+    else: ## only use gene names found in expression data; remove it from the networks at least
+        string_net = string_net[ np.in1d( string_net.protein1, all_genes ) & \
+                                 np.in1d( string_net.protein2, all_genes ) ]
+
     all_genes = np.sort(all_genes)
     all_genes = all_genes[ all_genes != NA ] ## for some reason some are floats and they are printing as nan's but this line
     if type(all_genes[0]) == float:          ## does not remove them so we do this line instead
