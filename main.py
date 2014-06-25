@@ -20,7 +20,7 @@ def run_pynkey(iter):
         glb.clusters = clusters
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
         glb.stats_df = glb.stats_df.append( stats_tmp )
-        if os.path.exists( 'DO_SAVE' ): ## save stats, and cluster info for temp. examination of clusters
+        if os.path.exists( 'DO_SAVE' ) or iter >= n_iters-1: ## save stats, and cluster info for temp. examination of clusters
             warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % organism )
             glb.stats_df.to_csv( 'output/%s_stats.tsv' % organism, sep='\t', na_rep='NA' )
             clusters_tab = funcs.clusters_to_dataFrame(clusters)

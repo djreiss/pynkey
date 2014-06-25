@@ -45,13 +45,15 @@ print 'RANDOM SEED:', random_seed
 np.random.seed( random_seed )
 random.seed( random_seed ) ## I dont know if I use non-numpy random, but do it here just in case
 
+#organism = 'Hpy'
+organism = 'Eco'
+#organism = 'Sce'
+#organism = 'Mpn'
+
 try:
     organism = options.organism
 except:
-    #organism = 'Hpy'
-    organism = 'Eco'
-    #organism = 'Sce'
-    #organism = 'Mpn'
+    None
 
 print 'ORGANISM:', organism
 
@@ -89,8 +91,8 @@ print distance_scan
 print motif_width_range
 
 max_resid_weight =   1.0
-max_motif_weight =   2.0 ##38.0 ##1.8
-max_network_weight = 0.5 ##1.0 ##29.0  ##0.9
+max_motif_weight =   1.5 ##38.0 ##1.8
+max_network_weight = 0.25 ##1.0 ##29.0  ##0.9
 max_volume_weight =  0.3 ## 3.0
 max_clusters_per_gene_weight = 1.0 ##3.0 ##0.1
 max_column_weight = 0.2
@@ -98,17 +100,17 @@ max_column_weight = 0.2
 try:
     max_resid_weight = options.resid_weight
 except:
-    max_resid_weight = 1.0
+    None
 
 try:
     max_motif_weight = options.mot_weight
 except:
-    max_motif_weight = 1.0 # 2.0
+    None
 
 try:
     max_network_weight = options.net_weight
 except:
-    max_network_weight = 0.25 # 0.5
+    None
 
 avg_genes_per_cluster = 22
 avg_clusters_per_gene = 1.3
