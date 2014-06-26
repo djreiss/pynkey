@@ -15,7 +15,7 @@ organism <- paste(tolower(substr(organism.dir,1,1)),substr(organism.dir,2,3),sep
 x=read.delim(sprintf("output/%s_clusters.tsv", organism.dir))
 if ( ! exists('ratios') ) ratios <- sprintf('~/python/pynkey/%s/ratios.tsv.gz', organism.dir)
 if ( ! exists('n.motifs') ) n.motifs <- 2
-e=cmonkey.init(organism=organism, bg.order=0, k.clust=nrow(x), seed.method=c( rows="rnd", cols="rnd" ),
+e=cmonkey.init(organism=organism, bg.order=3, k.clust=nrow(x), seed.method=c( rows="rnd", cols="rnd" ),
   discard.genome=F, parallel.cores=options('mc.cores')$mc.cores, parallel.cores.motif=options('mc.cores')$mc.cores)
 e$cmonkey.re.seed( e )
 sys.source("~/scratch/biclust/cmonkey-funcs.R",envir=e,chdir=T)

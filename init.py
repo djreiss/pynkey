@@ -2,16 +2,13 @@
 ## TODO: Load and use other networks (with their respective scores)
 import os
 import gzip
-import datetime
 
 import numpy as np
 from numpy import nan as NA
 from numpy import random as rand
 import pandas as pd
 
-from Bio import SeqIO
 import sequence as seq
-
 import params
 from Bicluster import bicluster
 import globals as glb
@@ -48,6 +45,7 @@ def init( from_pickle_file=None ):
 
         ##counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
 
+    import datetime
     print 'DONE WITH INITIALIZATION!'
     glb.endTime = datetime.datetime.now()
     print str(glb.endTime)
@@ -154,6 +152,7 @@ def load_ratios(rats_file):
     return x
 
 def load_genome(organism):
+    from Bio import SeqIO
     ## see http://biopython.org/wiki/SeqIO#Sequence_Input
     ## DONE: allow for multiple genome seqs (e.g. Halo, Sce)
     org_files = np.array( os.listdir('./' + organism + '/') )
@@ -178,7 +177,9 @@ def load_genome(organism):
     return genome_seqs
 
 def load_annos(organism):
-## Load the gene annotations
+    import string ## for replace
+
+    ## Load the gene annotations
     org_files = np.array( os.listdir('./' + organism + '/') )
     genomeInfo_file = './' + organism + '/' + \
         org_files[ np.array( [f.startswith('genomeInfo.') for f in org_files] ) ][ 0 ]
@@ -186,6 +187,8 @@ def load_annos(organism):
     print genomeInfo_file
     ## note x.ix[:,:5].head() prints first 5 cols
     x = pd.read_table(genomeInfo_file, compression='gzip', index_col='sysName') 
+    x['desc'].values[np.where(np.array([type(s)==str for s in x['desc'].values])==False)] = '' ## replace nan's w ''
+    x['desc']=np.array([string.replace(s,' (NCBI ptt file)','') for s in x['desc'].values]) ## makes it prettier
     return x
 
 ## TBD: save string_net as a sparse data frame (i.e., matrix) for speed?

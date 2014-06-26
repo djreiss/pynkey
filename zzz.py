@@ -50,6 +50,13 @@ reload(Bicluster)
 from Bicluster import bicluster
 bb=Bicluster.bicluster(b.k,b.rows,b.cols)
 
+
+for bb in clusters.values():
+    rats = ratios.ix[ bb.rows, bb.cols ]
+    rats2 = ratios.ix[ bb.rows, ratios.columns.values[~np.in1d(np.array(ratios.columns.values,str), bb.cols)] ]
+    print np.nanmean( np.abs( rats.values ) ), np.nanmean( np.abs( rats2.values ) )
+
+
 ### Plotting scores to figure out whats going on
 from matplotlib import pyplot as plt
 import utils

@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 print 'importing plot'
 
 import globals
+import params
 
 def setup_text_plots(fontsize=8, usetex=True):
     """

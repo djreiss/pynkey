@@ -1,17 +1,11 @@
-import tempfile
-
-from numpy.random import uniform
-import numpy as np
-import random
-
 import multiprocessing as mp
+
 ## see: http://matthewrocklin.com/blog/work/2013/12/05/Parallelism-and-Serialization/
 ## and https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-pythons-multiprocessing-pool-ma
 ## and https://stackoverflow.com/questions/19984152/what-can-multiprocessing-and-dill-do-together
 ##import pathos.multiprocessing as mp
 
-## Note these par funcs need to be in globals.py (and hence global) to have global access to all
-##    data -- I don't know how to change this right now.
+import numpy as np
 
 print 'importing utils'
 
@@ -30,6 +24,7 @@ def do_something_par( items, func, threads=None ): # None ensures that it makes 
 
 def writeLines( lines, fname=None ):
     if fname is None:
+        import tempfile
         fname = tempfile.mktemp()
     handle = open(fname, 'w')
     handle.write('\n'.join(lines)) ## assumes lines are an array split by '\n' - if not then do '\n'.join(lines) first
@@ -70,6 +65,8 @@ def slice_sampler(px, N = 1, x = None):
     From:
     http://www.adamlaiacano.com/post/14987215771/python-function-for-sampling-from-an-arbitrary-discrete
     """
+    from numpy.random import uniform
+    import random
     values = np.zeros(N, dtype=np.int)
     samples = np.arange(len(px))
     px = np.array(px) / (1.*sum(px))

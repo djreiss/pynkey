@@ -1,6 +1,3 @@
-import warnings
-import datetime
-
 import numpy as np
 import pandas as pd
 
@@ -22,6 +19,7 @@ def re_seed_all_clusters_if_necessary( clusters, ratios, all_genes, min_rows=3, 
 def matrix_residue( rats, weaveIt=True ):
     if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1: ## or \
             ##np.mean( rats.isnull().values ) > 0.95:
+        import warnings
         warnings.warn( "COULD NOT COMPUTE RESIDUE" )
         return 1.0
 
@@ -72,6 +70,7 @@ def print_cluster_stats( clusters, ratios, iter, startTime, n_tries=0, n_improve
     print 'N_MOVES:', n_tries
     print 'N_IMPROVEMENTS:', n_improvements
 
+    import datetime
     time_elapsed = datetime.datetime.now() - startTime ## seconds
 
     weight_r, weight_n, weight_m, weight_c, weight_v, weight_g = scores.get_score_weights( iter, ratios )

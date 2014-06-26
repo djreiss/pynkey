@@ -1,12 +1,7 @@
-import copy
-import warnings
-
 import numpy as np
 from numpy import nan as NA
 from numpy import random as rand
 import pandas as pd
-
-from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
 
 import scores
 import funcs
@@ -55,6 +50,7 @@ class bicluster:
         self.changed = np.ones(2, np.bool)
 
     def __repr__(self):
+        from colorama import Fore, Back, Style ## see https://pypi.python.org/pypi/colorama
         return Fore.GREEN + 'Bicluster: ' + Fore.RESET + '%d' % self.k + '\n' + \
             '   resid: %f' % self.resid + '\n' + \
             '   meme-p: %f' % self.meanp_meme + '\n' + \
@@ -64,13 +60,14 @@ class bicluster:
             '   changed: %s' % str(self.changed)
     
     def copy( self, deep=True ):
+        import copy
         out = copy.deepcopy(self) if deep else copy.copy(self)
         return out
 
     def volume( self ):
         return float(len(self.rows) * len(self.cols))
 
-    def compute_residue( self, ratios ):
+    def compute_residue( self, ratios, normalize=True ):
         if len(self.rows) <= 0:
             return NA
         rats = ratios.ix[ self.rows, self.cols ]
@@ -78,7 +75,10 @@ class bicluster:
         ##        np.mean( rats.isnull().values ) > 0.95:
         ##    warnings.warn( "COULD NOT COMPUTE RESIDUE FOR BICLUSTER " + self.k )
         ##    return 1.0
-        return funcs.matrix_residue( rats.values )
+        out = funcs.matrix_residue( rats.values )
+        if normalize:
+            out = out / np.nanmean( np.abs( rats.values ) ) ##, 2.0 ) ) ## up-weight highly expressed conditions
+        return out
 
     ## Note: how to profile this in ipython:
     ## %load_ext line_profiler
@@ -103,6 +103,7 @@ class bicluster:
         is_in = np.in1d( all_genes, rows )
         rats = in_rats.ix[ :, cols ]
         resid = funcs.matrix_residue( rats.ix[ rows ].values )
+        resid = resid / np.nanmean( np.power( rats.values, 2.0 ) ) ## up-weight highly expressed conditions?
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             if not is_inRats[i]:
@@ -110,7 +111,10 @@ class bicluster:
                 continue
             r = all_genes[i]
             rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
-            all_resids[i] = funcs.matrix_residue( rats.ix[ rows2 ].values )
+            rats2 = rats.ix[ rows2 ].values
+            new_resid = funcs.matrix_residue( rats2 )
+            new_resid = new_resid / np.nanmean( np.power( rats2, 2.0 ) ) ## up-weight highly expressed conditions?
+            all_resids[i] = new_resid
         return all_resids - resid
 
     ## 143 ms vs. 355 ms for old way
@@ -211,6 +215,7 @@ class bicluster:
         k, meme_out, mast_out = meme.re_meme_bicluster( self.k, seqs, n_motifs, allSeqs_fname, 
                                                         motif_width_range, False )
         if k != self.k:
+            import warnings
             warnings.warn( 'Uh oh! %d' %k )
         else:
             self.meme_out = meme_out
@@ -350,6 +355,7 @@ class bicluster:
         ## with >2 sequences. 
         ## Squash clusters that get way too big (DONE: just remove some to bring it down to max_rows)
         if len(self.rows) < min_rows or len(self.rows) > max_rows:
+            import warnings
             nr = len(self.rows)
             warnings.warn( "RESEEDING BICLUSTER %d (%d)" % (self.k, nr) )
 

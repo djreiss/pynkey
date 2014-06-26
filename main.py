@@ -1,7 +1,4 @@
 ## MAIN PROGRAM
-import datetime
-import os.path
-import warnings
 
 import numpy as np
 from params import n_iters,nthreads,organism
@@ -12,6 +9,7 @@ import plot
 import floc
 
 def run_pynkey(iter):
+    import os.path
     n_no_improvements = 0
     for i in range(iter,n_iters):
         iter = i
@@ -21,6 +19,7 @@ def run_pynkey(iter):
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
         glb.stats_df = glb.stats_df.append( stats_tmp )
         if os.path.exists( 'DO_SAVE' ) or iter >= n_iters-1: ## save stats, and cluster info for temp. examination of clusters
+            import warnings
             warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % organism )
             glb.stats_df.to_csv( 'output/%s_stats.tsv' % organism, sep='\t', na_rep='NA' )
             clusters_tab = funcs.clusters_to_dataFrame(clusters)
@@ -46,6 +45,7 @@ def finish():
     stats_tmp = funcs.print_cluster_stats(glb.clusters, glb.ratios, glb.iter, glb.startTime)
     glb.stats_df = glb.stats_df.append( stats_tmp )
 
+    import datetime
     glb.endTime = datetime.datetime.now()
     print str(glb.endTime)
     print str(glb.endTime - glb.startTime) + ' seconds since initialization'

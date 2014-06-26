@@ -1,5 +1,3 @@
-from optparse import OptionParser
-
 import numpy as np
 
 print 'importing params'
@@ -7,6 +5,7 @@ print 'importing params'
 options = None
 
 def parse_args():
+    from optparse import OptionParser
     parser = OptionParser()
     parser.add_option('-o', '--organism', dest='organism',
                         help='input organism [default: %default]', metavar='ORGANISM', default='Hpy')
@@ -91,8 +90,8 @@ print distance_scan
 print motif_width_range
 
 max_resid_weight =   1.0
-max_motif_weight =   1.5 ##38.0 ##1.8
-max_network_weight = 0.25 ##1.0 ##29.0  ##0.9
+max_motif_weight =   2.0 ##38.0 ##1.8
+max_network_weight = 0.5 ##1.0 ##29.0  ##0.9
 max_volume_weight =  0.3 ## 3.0
 max_clusters_per_gene_weight = 1.0 ##3.0 ##0.1
 max_column_weight = 0.2
@@ -113,7 +112,7 @@ except:
     None
 
 avg_genes_per_cluster = 22
-avg_clusters_per_gene = 1.3
+avg_clusters_per_gene = 1.8 ##1.3
 
 ## allow more updates if there are more clusters??? Tuned to k_clust/2 for Hpy (where k_clust is 75) --
 ##     may need additional tuning; e.g. for eco (k_clust=450), k_clust/2 is too high

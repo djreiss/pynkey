@@ -2,10 +2,6 @@
 ## TODO: Correctly handle IUPAC
 ## DONE: Need to add remove-ATG step, and also running dust on sequences.
 
-import os
-import tempfile
-import warnings
-
 import pandas as pd
 import numpy as np
 
@@ -90,6 +86,8 @@ def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True
      seqs = seqs[ seqs.seq != '' ] ## remove all empty sequences; they cause heartburn.
 
      if remove_repeats: ##&& len( grep( "NNNNNN", seqs ) ) <= 1
+         import os
+         import tempfile
          ##if verbose: println( "Removing low-complexity regions from sequences.\n" )
          fname = tempfile.mktemp() 
          writeFasta( seqs, fname )
@@ -107,6 +105,7 @@ def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True
          os.unlink( fname )
 
          if seqs.shape[0] != len(seqs_new):
+             import warnings
              warnings.warn("Remove low complexity failed - skipping!" )
          else:
              out = seqs.copy()
