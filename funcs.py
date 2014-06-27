@@ -179,7 +179,7 @@ import re
 
 ## Find the flagellar cluster, whew!!!
 def clusters_w_func( func, clusters, anno, n_best=1 ):
-    reg = re.compile(func)
+    reg = re.compile(func, flags=re.IGNORECASE)
     inds = np.nonzero( np.array( [ len( reg.findall( str(i) ) ) for i in anno.desc.values ] ) )
     genes = anno.index.values[ inds ]
     nhits = np.array( [ np.sum( np.in1d( genes, b.rows ) ) for b in clusters.values() ] )

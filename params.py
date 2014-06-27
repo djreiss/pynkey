@@ -19,7 +19,7 @@ def parse_args():
                         help='maximum network weight [default: %default]', metavar='NET_WEIGHT')
     parser.add_option('--nthreads', dest='nthreads', type=int, default=8,
                         help='maximum number of threads used [default: %default]', metavar='NTHREADS')
-    #parser.add_option('--pylab') ## ignore this if run from ipython
+    parser.add_option('--pylab') ## ignore this if run from ipython
     
     options, args = parser.parse_args()
     return(options,args)
@@ -39,7 +39,7 @@ except:
 ## set random seed here!
 import time
 import random
-random_seed = int(time.time()*1e6)
+random_seed = int(time.time()*1e6) ## 1403806278241227 ## this is good one for hpy
 print 'RANDOM SEED:', random_seed
 np.random.seed( random_seed )
 random.seed( random_seed ) ## I dont know if I use non-numpy random, but do it here just in case
@@ -92,7 +92,7 @@ print motif_width_range
 max_resid_weight =   1.0
 max_motif_weight =   2.0 ##38.0 ##1.8
 max_network_weight = 0.5 ##1.0 ##29.0  ##0.9
-max_volume_weight =  0.3 ## 3.0
+max_volume_weight =  1.0 ## 3.0
 max_clusters_per_gene_weight = 1.0 ##3.0 ##0.1
 max_column_weight = 0.2
 

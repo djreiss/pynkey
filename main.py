@@ -8,6 +8,19 @@ import init
 import plot
 import floc
 
+def do_saveall(iter=None):
+    import warnings
+    org = organism
+    if iter is not None:
+        org = '%s_%04d' % (organism,iter)
+
+    warnings.warn( 'Writing out clusters to output/clusters_%s.tsv' % org )
+    glb.stats_df.to_csv( 'output/stats_%s.tsv' % org, sep='\t', na_rep='NA' )
+    clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
+    clusters_tab.to_csv( 'output/clusters_%s.tsv' % org, sep='\t', na_rep='NA' )
+    warnings.warn( 'Writing out everything to output/%s.pkl' % org )
+    funcs.checkpoint( 'output/%s.pkl' % org )
+
 def run_pynkey(iter):
     import os.path
     n_no_improvements = 0
@@ -18,15 +31,11 @@ def run_pynkey(iter):
         glb.clusters = clusters
         ##println( @sprintf( "%.3f", (time() - startTime)/60 ), " minutes since initialization" )
         glb.stats_df = glb.stats_df.append( stats_tmp )
-        if os.path.exists( 'DO_SAVE' ) or iter >= n_iters-1: ## save stats, and cluster info for temp. examination of clusters
-            import warnings
-            warnings.warn( 'Writing out clusters to output/%s_clusters.tsv' % organism )
-            glb.stats_df.to_csv( 'output/%s_stats.tsv' % organism, sep='\t', na_rep='NA' )
-            clusters_tab = funcs.clusters_to_dataFrame(clusters)
-            clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
-            warnings.warn( 'Writing out everything to output/%s.pkl' % organism )
-            funcs.checkpoint( 'output/%s.pkl' % organism )
-            ##plot.plot_stats() ## probably should add a 'DO_PLOT' file option DOESNT WORK
+        if os.path.exists( 'DO_SAVE' ): ## save stats, and cluster info for temp. examination of clusters
+            do_saveall(iter)
+            iter >= n_iters-1:
+                do_saveall()
+            ##plot.plot_stats() ## probably should add a 'DO_PLOT' file option DOESNT WORK in ipython
 
         n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
         n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )

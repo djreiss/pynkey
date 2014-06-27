@@ -12,7 +12,23 @@ if ( ! exists( 'organism.dir' ) ) {
 }
 organism <- paste(tolower(substr(organism.dir,1,1)),substr(organism.dir,2,3),sep='')
 
-x=read.delim(sprintf("output/%s_clusters.tsv", organism.dir))
+if (!exists('iter')) {
+for(iter in 1:100){
+    f = sprintf("output/clusters_%s_%04d.tsv", organism.dir, iter)
+    f1 = sprintf("output/clusters_%s_%04d.tsv", organism.dir, iter+1)
+    if (! file.exists(f1)) {
+        print(f)
+        x=read.delim(f)
+        break
+    }
+
+}
+} else {
+    f = sprintf("output/clusters_%s_%04d.tsv", organism.dir, iter)
+    print(f)
+    if (file.exists(f)) x=read.delim(f)
+    else stop()
+}
 if ( ! exists('ratios') ) ratios <- sprintf('~/python/pynkey/%s/ratios.tsv.gz', organism.dir)
 if ( ! exists('n.motifs') ) n.motifs <- 2
 e=cmonkey.init(organism=organism, bg.order=3, k.clust=nrow(x), seed.method=c( rows="rnd", cols="rnd" ),
