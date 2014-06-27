@@ -168,18 +168,18 @@ if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("-o", "--organism", dest="organism",
-                  help="input organism [default: %default]", metavar="ORGANISM", default='Hpy')
-    #parser.add_option("-i", "--iter", dest="iter", type=int,
-    #              help="desired iteration to plot [default: %default]", metavar="ITER", default='100')
+                      help="input organism [default: %default]", metavar="ORGANISM", default='Hpy')
+    parser.add_option("-i", "--iter", dest="iter", type=int,
+                      help="desired iteration to plot [default: %default]", metavar="ITER", default='100')
     (options, args) = parser.parse_args()
 
     import init
     import os.path
-    for iter in xrange(1,100):
-        if os.path.exists( 'output/%s_%04d.pkl' % (options.organism, iter+1) ):
-            continue
-        else:
-            init.init( 'output/%s_%04d.pkl' % (options.organism, iter) )
-            break
+    try:
+        iter = options.iter
+        #if os.path.exists( 'output/%s_%04d.pkl' % (options.organism, iter) ):
+        init.init( 'output/%s_%04d.pkl' % (options.organism, iter) )
+    except:
+        init.init( 'output/%s.pkl' % options.organism )
     
     plot_stats()

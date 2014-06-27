@@ -7,7 +7,7 @@
 
 import tempfile
 import os
-import warnings
+import logging
 import sys
 
 import numpy as np
@@ -37,12 +37,12 @@ def re_meme_bicluster( k, seqs, n_motifs, allSeqs_fname, motif_width_range, verb
             try:
                 mast_out = do_mast(meme_out, allSeqs_fname, False, verbose)
             except:
-                warnings.warn( 'ERROR RUNNING MAST FOR BICLUSTER %d' % k )
+                logging.warning( 'ERROR RUNNING MAST FOR BICLUSTER %d' % k )
                 print sys.exc_info()[0]
         else:
-            warnings.warn( 'TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d' % k )
+            logging.info( 'TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d' % k )
     except:
-        warnings.warn( "TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d" % k )
+        logging.info( "TOO FEW SEQUENCES TO MEME FOR BICLUSTER %d" % k )
         print sys.exc_info()[0]
     return (k, meme_out, mast_out)
 

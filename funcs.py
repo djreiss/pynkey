@@ -19,8 +19,8 @@ def re_seed_all_clusters_if_necessary( clusters, ratios, all_genes, min_rows=3, 
 def matrix_residue( rats, weaveIt=True ):
     if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1: ## or \
             ##np.mean( rats.isnull().values ) > 0.95:
-        import warnings
-        warnings.warn( "COULD NOT COMPUTE RESIDUE" )
+        import logging
+        logging.warning( "COULD NOT COMPUTE RESIDUE" )
         return 1.0
 
     ##rats = rats.values ## do it all in numpy - faster

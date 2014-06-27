@@ -9,7 +9,7 @@ def parse_args():
     parser = OptionParser()
     parser.add_option('-o', '--organism', dest='organism',
                         help='input organism [default: %default]', metavar='ORGANISM', default='Hpy')
-    parser.add_option('-k', '--k', dest='k', type=int, default=75,
+    parser.add_option('-k', '--k', dest='k', type=int, default=0, ## default is different for given organism
                         help='number of clusters [default: %default]', metavar='KCLUST')
     parser.add_option('-r', '--r0', '--resid_weight', dest='resid_weight', type=float, default=1.0, 
                         help='maximum residual weight [default: %default]', metavar='RESID_WEIGHT')
@@ -59,12 +59,17 @@ print 'ORGANISM:', organism
 try:
     k_clust = options.k
 except:
+    None
+
+if k_clust <= 0:
     if organism == 'Hpy' or organism == 'Mpn':
         k_clust = 75
     elif organism == 'Eco':
         k_clust = 450
     elif organism == 'Sce':
         k_clust = 600
+
+print k_clust
 
 #if undefined('ratios'):
 ratios_file = './' + organism + '/ratios.tsv.gz'

@@ -105,8 +105,8 @@ def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True
          os.unlink( fname )
 
          if seqs.shape[0] != len(seqs_new):
-             import warnings
-             warnings.warn("Remove low complexity failed - skipping!" )
+             import logging
+             logging.warning("Remove low complexity failed - skipping!" )
          else:
              out = seqs.copy()
              for gene in seqs.gene:

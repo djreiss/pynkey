@@ -24,7 +24,8 @@ def init( from_pickle_file=None ):
 
     if from_pickle_file is not None:
         from funcs import load_checkpoint
-        print 'Loading checkpoint file:', from_pickle_file
+        import logging
+        logging.info( 'Loading checkpoint file: %s' % from_pickle_file )
         load_checkpoint( from_pickle_file )
         print str(glb.startTime)
 
@@ -33,6 +34,10 @@ def init( from_pickle_file=None ):
         glb.ratios, glb.genome_seqs, glb.anno, glb.op_table, glb.string_net, glb.allSeqs_fname, \
             glb.all_bgFreqs, glb.all_genes = \
             pynkey_init(params.organism, params.k_clust, params.ratios_file)
+
+        if params.k_clust <= 0: ## default for organisms not Eco/Hpy/Mpn/Hal/Sce based on total # of genes
+            params.k_clust = int( len(glb.all_genes) / params.avg_genes_per_cluster * params.avg_clusters_per_gene )
+            print params.k_clust
 
         # Save all pynkey code for safe keeping
         glb.pynkey_code = {}

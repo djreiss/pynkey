@@ -73,7 +73,7 @@ class bicluster:
         rats = ratios.ix[ self.rows, self.cols ]
         ##if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1 or \
         ##        np.mean( rats.isnull().values ) > 0.95:
-        ##    warnings.warn( "COULD NOT COMPUTE RESIDUE FOR BICLUSTER " + self.k )
+        ##    logging.warning( "COULD NOT COMPUTE RESIDUE FOR BICLUSTER " + self.k )
         ##    return 1.0
         out = funcs.matrix_residue( rats.values )
         if normalize:
@@ -215,8 +215,8 @@ class bicluster:
         k, meme_out, mast_out = meme.re_meme_bicluster( self.k, seqs, n_motifs, allSeqs_fname, 
                                                         motif_width_range, False )
         if k != self.k:
-            import warnings
-            warnings.warn( 'Uh oh! %d' %k )
+            import logging
+            logging.warning( 'Uh oh! %d' %k )
         else:
             self.meme_out = meme_out
             if mast_out.shape[0] > 0:
@@ -271,7 +271,7 @@ class bicluster:
         ##score_vc = np.array( [ +1.0/lc if i else -1.0/lc for i in is_in ] )
         score_vc = np.array( [ (+1.0 if i else -1.0) * ( thresh - lc ) for i in is_in ] )
         ##score_vc = np.repeat(NA, len(self.scores_c)) ## Do we really care how many cols there are?
-        return score_vc
+        return score_vc**3.0
 
     ## Up-weight moves OUT if counts_g is HIGH, and moves IN if counts_g is LOW
     ## counts_g comes from counts_g = bicluster.get_all_cluster_row_counts( clusters, all_genes )
@@ -355,9 +355,9 @@ class bicluster:
         ## with >2 sequences. 
         ## Squash clusters that get way too big (DONE: just remove some to bring it down to max_rows)
         if len(self.rows) < min_rows or len(self.rows) > max_rows:
-            import warnings
+            import logging
             nr = len(self.rows)
-            warnings.warn( "RESEEDING BICLUSTER %d (%d)" % (self.k, nr) )
+            logging.info( "RESEEDING BICLUSTER %d (%d)" % (self.k, nr) )
 
         ## DONE: add rows that are preferentially in few (or no) other clusters -- 
         ## sample from get_cluster_row_counts(clusters)

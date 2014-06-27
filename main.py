@@ -9,16 +9,16 @@ import plot
 import floc
 
 def do_saveall(iter=None):
-    import warnings
+    import logging
     org = organism
     if iter is not None:
         org = '%s_%04d' % (organism,iter)
 
-    warnings.warn( 'Writing out clusters to output/clusters_%s.tsv' % org )
+    logging.info( 'Writing out clusters to output/clusters_%s.tsv' % org )
     glb.stats_df.to_csv( 'output/stats_%s.tsv' % org, sep='\t', na_rep='NA' )
     clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
     clusters_tab.to_csv( 'output/clusters_%s.tsv' % org, sep='\t', na_rep='NA' )
-    warnings.warn( 'Writing out everything to output/%s.pkl' % org )
+    logging.info( 'Writing out everything to output/%s.pkl' % org )
     funcs.checkpoint( 'output/%s.pkl' % org )
 
 def run_pynkey(iter):
@@ -33,10 +33,9 @@ def run_pynkey(iter):
         glb.stats_df = glb.stats_df.append( stats_tmp )
         if os.path.exists( 'DO_SAVE' ): ## save stats, and cluster info for temp. examination of clusters
             do_saveall(iter)
-            iter >= n_iters-1:
-                do_saveall()
-            ##plot.plot_stats() ## probably should add a 'DO_PLOT' file option DOESNT WORK in ipython
-
+        if iter >= n_iters-1:
+            do_saveall()
+        ##plot.plot_stats() ## probably should add a 'DO_PLOT' file option DOESNT WORK in ipython
         n_no_improvements = n_no_improvements+1 if n_improvements <= 0 else 0
         n_changed = np.nansum( [np.sum(clust.changed) for clust in glb.clusters.values()] )
         if n_changed <= 10 and iter > n_iters/2 and n_no_improvements > 5:
