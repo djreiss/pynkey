@@ -52,14 +52,14 @@ organism = 'Eco'
 try:
     organism = options.organism
 except:
-    None
+    organism = 'Eco'
 
 print 'ORGANISM:', organism
 
 try:
     k_clust = options.k
 except:
-    None
+    k_clust = 0
 
 if k_clust <= 0:
     if organism == 'Hpy' or organism == 'Mpn':
