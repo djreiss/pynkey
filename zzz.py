@@ -68,3 +68,19 @@ score_g2 = np.array( [ score_g[k] for k in counts_g ] )
 
 utils.setup_text_plots(fontsize=8, usetex=True)
 plt.scatter( counts_g2, score_g2 )
+
+
+
+## using networkx
+import networkx as nx
+net=nx.read_weighted_edgelist('Eco/STRING_511145.tsv.gz')
+## get sum of all weights of edges between given nodes! 
+rows = glb.clusters[0].rows
+## this uses networkx and takes 1.92 ms:
+np.sum(nx.get_edge_attributes(net.subgraph(rows),'weight').values()) 
+## this uses pandas and takes 226 ms:
+np.sum(glb.string_net[ glb.string_net[[0,1]].isin(rows).all(1) ].weight)/2.0
+## even this takes longer (27.7 ms + 4.33 ms) = 32.03 ms:
+net2 = glb.string_net.ix[rows]
+np.sum( net2[ net2[[0,1]].isin(rows).all(1) ].weight)/2.0
+## Using networkx to do this on all 4000 genes is still (27.7+4.33*4000)/(1.92*4000) or about 2.25x faster
