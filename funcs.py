@@ -146,7 +146,6 @@ def checkpoint( fname, verbose=False ):
             for clust in v.values():
                 clust.simplify()
         tmps = pickle.dumps(v)
-        print len(tmps)
         d[ 'globals.%s'%k ] = v
     f = gzip.open( fname, 'wb' )
     pickle.dump( d, f, pickle.HIGHEST_PROTOCOL ) ## dump the dict
