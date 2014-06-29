@@ -136,11 +136,17 @@ def checkpoint( fname, verbose=False ):
         if verbose: 
             print 'Saving:', k, type(k)
         d[ 'params.%s'%k ] = v
-    for k,v in globals.__dict__.items(): ## save everything from params
+    for k,v in globals.__dict__.items(): ## save everything from globals
         if k.startswith('__'): continue;
         if ( type(v) == type(pickle) ): continue; ## module type
         if verbose:
             print 'Saving:', k, type(v)
+        if k == 'clusters': ## shrink down size of clusters -- remove scores vectors
+            v = copy_clusters( v, deep=True )
+            for clust in v.values():
+                clust.simplify()
+        tmps = pickle.dumps(v)
+        print len(tmps)
         d[ 'globals.%s'%k ] = v
     f = gzip.open( fname, 'wb' )
     pickle.dump( d, f, pickle.HIGHEST_PROTOCOL ) ## dump the dict

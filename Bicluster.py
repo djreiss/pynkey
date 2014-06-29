@@ -64,6 +64,13 @@ class bicluster:
         out = copy.deepcopy(self) if deep else copy.copy(self)
         return out
 
+    def simplify( self, remove_meme=False, remove_mast=True ): ## remove all scores vectors and make as small as possible
+        self.scores_r = self.scores_c = self.scores_n = self.scores_m = np.array([])
+        if remove_meme:
+            self.meme_out = ''
+        if remove_mast:
+            self.mast_out = pd.DataFrame()
+
     def volume( self ):
         return float(len(self.rows) * len(self.cols))
 
