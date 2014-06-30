@@ -84,3 +84,18 @@ np.sum(glb.string_net[ glb.string_net[[0,1]].isin(rows).all(1) ].weight)/2.0
 net2 = glb.string_net.ix[rows]
 np.sum( net2[ net2[[0,1]].isin(rows).all(1) ].weight)/2.0
 ## Using networkx to do this on all 4000 genes is still (27.7+4.33*4000)/(1.92*4000) or about 2.25x faster
+
+## how about this? no -- 114 ms -- why? and does it account for weights?
+nx.average_node_connectivity(net.subgraph(rows))
+
+
+## using igraph? can't read in gzipped file, so uncompress it then:
+import igraph as ig
+G=ig.Graph.Read_Ncol('Eco/STRING_511145.tsv',weights=True)
+## throws an error if any rows are not in the network
+## This is 4.05 ms
+np.sum(G.induced_subgraph(rows[np.in1d(rows,G.vs['name'])]).es['weight'])/2.0
+r=rows[np.in1d(rows,G.vs['name'])]
+## This is 250 us -- so if we could pre-filter all rows into only those that are in the network, this is fastest
+np.sum(G.induced_subgraph(r).es['weight'])/2.0
+
