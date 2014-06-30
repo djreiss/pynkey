@@ -193,21 +193,18 @@ class bicluster:
             return NA
         return funcs.subnetwork_density( self.rows, network )
 
+    ## New version uses networkx subgraph rather than pandas dataframes
     def compute_network_density_deltas( self, network, all_genes ):
         if len(self.rows) <= 0:
             return np.repeat( -0.1, len(all_genes) )
         is_in = np.in1d( all_genes, self.rows )
         rows = self.rows
-    #     dens = funcs.subnetwork_density( rows, network )
-        net1 = network[ network[[0,1]].isin(rows).any(1) ] ## subnetwork where protein1 OR protein2 are in rows
-        if net1.shape[0] <= 0:
-            return np.repeat( -0.1, len(all_genes) )
-        dens = funcs.subnetwork_density( rows, net1 ) ## pass subnetwork to this func for speed
+        dens = funcs.subnetwork_density( rows, network )
         all_dens = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             r = all_genes[i]
             rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
-            all_dens[i] = funcs.subnetwork_density( rows2, net1 )
+            all_dens[i] = funcs.subnetwork_density( rows2, network )
         return all_dens - dens
 
     def get_sequences( self, anno, genome_seqs, op_table, distance, do_filter=True):

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import networkx as nx
 
 import scores
 import weaved
@@ -53,9 +54,14 @@ def matrix_var( rats, var_add=0.1 ):
 ## This is the faster version that uses SubDataFrames
 ## TODO: use numexpr to speed up and avoid temporary array creation?
 ## This is slower but for accuracy when passed a subnetwork it can be faster
-def subnetwork_density( rows, network ):
+def subnetwork_density_OLD_GOOD( rows, network ):
     net1 = network[ network[[0,1]].isin(rows).all(1) ]
     dens = float(np.sum(net1.weight)) / (float(len(rows))**2) ## Already symmetrized, need to decrease count by 1/2
+    return np.log10( dens+1e-9 )
+
+def subnetwork_density( rows, network ):
+    weights = nx.get_edge_attributes( network.subgraph( rows ), 'weight' ).values()
+    dens = float(np.sum(weights)) / (float(len(rows))**2)
     return np.log10( dens+1e-9 )
 
 from collections import Counter

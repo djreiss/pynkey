@@ -43,6 +43,8 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
     ## TBD: use dataframe indexes rather than np.where() to speed up lookups.
     ##ot1 = op_table.copy(); ot1.set_index('SysName1', drop=False, inplace=True)
     ##ot2 = op_table.copy(); ot2.set_index('SysName2', drop=False, inplace=True)
+
+    ## TBD: use operons as network (networkx) rather than dataframe)
     for gene in genes:
         upstream_gene = gene
         if gene not in anno.index: ##anno_ind == 0 ##! any(anno["sysName"].data .== gene) 
