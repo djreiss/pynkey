@@ -172,17 +172,18 @@ def load_checkpoint( fname, verbose=False ): ## use 'exec' to load the values
         exec code
 
 def clusters_to_dataFrame( clusters ):
-    out = {}
-    for k in xrange(0,len(clusters)):
-        b = clusters[k]
-        out_r = pd.DataFrame( { 'k': [k+1],
-                                'rows': ','.join(b.rows),
-                                'resid': [b.resid],
-                                'dens_string': [b.dens_string],
-                                'meanp_meme': [b.meanp_meme],
-                                'cols': ','.join(b.cols),
-                                'meme_out': '' if b.meme_out == '' else '<<<<>>>>'.join(b.meme_out.split('\n')) } )
-        out[k] = out_r
+    out = { k: clusters[k].to_dataFrame() for k in xrange(0,len(clusters)) }
+    # out = {}
+    # for k in xrange(0,len(clusters)):
+    #     b = clusters[k]
+    #     out_r = pd.DataFrame( { 'k': [k+1],
+    #                             'rows': ','.join(b.rows),
+    #                             'resid': [b.resid],
+    #                             'dens_string': [b.dens_string],
+    #                             'meanp_meme': [b.meanp_meme],
+    #                             'cols': ','.join(b.cols),
+    #                             'meme_out': '' if b.meme_out == '' else '<<<<>>>>'.join(b.meme_out.split('\n')) } )
+    #     out[k] = out_r
     out = pd.concat( out.values() )
     return out
 

@@ -386,6 +386,18 @@ class bicluster:
             self.changed[ 0 ] = True
         return self
 
+    def to_dataFrame( self ):
+        b = clusters[k]
+        out_r = pd.DataFrame( { 
+            'k': [self.k],
+            'rows': ','.join(self.rows),
+            'resid': [self.resid],
+            'dens_string': [self.dens_string],
+            'meanp_meme': [self.meanp_meme],
+            'cols': ','.join(self.cols),
+            'meme_out': '' if self.meme_out == '' else '<<<<>>>>'.join(self.meme_out.split('\n')) } )
+        return out_r
+
     @staticmethod
     ## number of clusters each gene is in - need to compute only once over all clusters
     ## all_genes provides reference of all possible gene names. May want to use ratios.index.values for this
