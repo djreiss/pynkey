@@ -310,13 +310,13 @@ def init_biclusters( ratios, k_clust, method='kmeans' ):
             if method == 'kmeans': 
                 if len(rows) == 0:
                     rows = ratios.index.values[ rand.choice(ratios.shape[0], 10, replace=False) ]
-                clusters[k] = bicluster( k, rows, x )
+                clusters[k] = bicluster( k, rows, ratios=x )
             elif method == 'kmeans+random':          ## add some random rows to each bicluster
                 new_rows = ratios.index.values[ rand.choice(ratios.shape[0], max(len(rows),10), replace=False) ]
-                clusters[k] = bicluster( k, np.unique( np.concatenate( (rows, new_rows), 0 ) ), x )
+                clusters[k] = bicluster( k, np.unique( np.concatenate( (rows, new_rows), 0 ) ), ratios=x )
     elif method == 'random':
         for k in xrange(k_clust):
             rows = ratios.index.values[ rand.choice(ratios.shape[0], 20, replace=False) ]
-            clusters[k] = bicluster( k, np.unique( rows ), x )
+            clusters[k] = bicluster( k, np.unique( rows ), ratios=x )
     return clusters
 
