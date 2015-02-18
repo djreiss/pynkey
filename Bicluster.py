@@ -124,43 +124,43 @@ class bicluster:
             all_resids[i] = new_resid
         return all_resids - resid
 
-    ## 143 ms vs. 355 ms for old way
+    ## 143 ms vs. 355 ms for old way, but old was is fine if we used the weaved version -- fast_resid()
     ## Faster way seems to be to take bicluster submatrix, then append single row for 
     ##   each test (rather than old way which is to subset entire matrix each iter)
-    def compute_residue_deltas_FASTER( self, ratios, all_genes, actually_cols=False ):
-        ## if actually_cols is False, then all_genes should be ratios.colums.values
-        if not actually_cols:
-            if len(self.rows) <= 0:
-                return np.repeat( -0.1, len(all_genes) )
-            in_rats = ratios
-            rows = self.rows
-            cols = self.cols
-            is_inRats = np.in1d( all_genes, ratios.index.values )
-        else:  ## all_genes needs to be all_cols==ratios.columns.values
-            if len(self.cols) <= 0:
-                return np.repeat( -0.1, len(all_genes) )
-            in_rats = ratios.T
-            rows = self.cols
-            cols = self.rows
-            is_inRats = np.in1d( all_genes, ratios.columns.values )
+    # def compute_residue_deltas_FASTER( self, ratios, all_genes, actually_cols=False ):
+    #     ## if actually_cols is False, then all_genes should be ratios.colums.values
+    #     if not actually_cols:
+    #         if len(self.rows) <= 0:
+    #             return np.repeat( -0.1, len(all_genes) )
+    #         in_rats = ratios
+    #         rows = self.rows
+    #         cols = self.cols
+    #         is_inRats = np.in1d( all_genes, ratios.index.values )
+    #     else:  ## all_genes needs to be all_cols==ratios.columns.values
+    #         if len(self.cols) <= 0:
+    #             return np.repeat( -0.1, len(all_genes) )
+    #         in_rats = ratios.T
+    #         rows = self.cols
+    #         cols = self.rows
+    #         is_inRats = np.in1d( all_genes, ratios.columns.values )
 
-        is_in = np.in1d( all_genes, rows )
-        rats = in_rats.ix[ :, cols ]
-        rrats = rats.ix[ rows ]
-        resid = funcs.matrix_residue( rrats.values )
-        all_resids = np.zeros( len( all_genes ), float )
-        for i in xrange(len(all_genes)):
-            if not is_inRats[i]:
-                all_resids[i] = resid
-                continue
-            r = all_genes[i]
-            if is_in[i]:
-                rows2 = rows[ rows != r ]
-                tmp_rats = rrats.ix[ rows2 ].values
-            else:
-                tmp_rats = np.append( rrats.values, [rats.ix[ r ].values], axis=0 )
-            all_resids[i] = funcs.matrix_residue( tmp_rats )
-        return all_resids - resid
+    #     is_in = np.in1d( all_genes, rows )
+    #     rats = in_rats.ix[ :, cols ]
+    #     rrats = rats.ix[ rows ]
+    #     resid = funcs.matrix_residue( rrats.values )
+    #     all_resids = np.zeros( len( all_genes ), float )
+    #     for i in xrange(len(all_genes)):
+    #         if not is_inRats[i]:
+    #             all_resids[i] = resid
+    #             continue
+    #         r = all_genes[i]
+    #         if is_in[i]:
+    #             rows2 = rows[ rows != r ]
+    #             tmp_rats = rrats.ix[ rows2 ].values
+    #         else:
+    #             tmp_rats = np.append( rrats.values, [rats.ix[ r ].values], axis=0 )
+    #         all_resids[i] = funcs.matrix_residue( tmp_rats )
+    #     return all_resids - resid
 
     def compute_var( self, ratios, var_add=0.1 ):
         rats = ratios.ix[ self.rows, self.cols ] ##.copy() ## get the bicluster's submatrix of the data

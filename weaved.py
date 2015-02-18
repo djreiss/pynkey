@@ -1,4 +1,8 @@
+import numpy as np
 import scipy.weave
+from numpy import random as rnd
+
+import utils as ut
 
 print 'importing weaved'
 
@@ -68,18 +72,18 @@ def rnd_bubblesort3( scores, Nrepeats=None ): ## make sure scores is a copy, b/c
     for i in xrange(Nrepeats):
         rnds = rnd.rand(n)
         code = """
-  for ( int j=0; j<n; j++ ) {
-      int o1 = ords(j), o2 = ords(j+1);
-      double g1 = sc(o1), g2 = sc(o2);
-      if ( g1 == g2 && g2 == (double)the_max ) continue;
-      double p = 0.5 + ( g1 - g2 ) / (double)R; // compute prob of switching
-      if ( rnds(j) < p ) { // switch???
-          ords(j) = o2;
-          ords(j+1) = o1;
-          switchesN(0) ++;
-      }
-    }
- """
+        for ( int j=0; j<n; j++ ) {
+          int o1 = ords(j), o2 = ords(j+1);
+          double g1 = sc(o1), g2 = sc(o2);
+          if ( g1 == g2 && g2 == (double)the_max ) continue;
+          double p = 0.5 + ( g1 - g2 ) / (double)R; // compute prob of switching
+          if ( rnds(j) < p ) { // switch???
+            ords(j) = o2;
+            ords(j+1) = o1;
+            switchesN(0) ++;
+          }
+        }
+        """
         ## See here for other weave options:
         ## https://mail.python.org/pipermail/cplusplus-sig/2002-January/000428.html
         scipy.weave.inline(code,['ords','n','sc','R','switchesN','rnds','the_max'],
