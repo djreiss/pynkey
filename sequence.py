@@ -74,7 +74,7 @@ def get_sequences( genes, anno=None, ##=globals()['anno'],
         if strnd == "-":
             seq = seq.reverse_complement()
         #print gene
-        seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':[seq.tostring()], 
+        seqs[ gene ] = pd.DataFrame( {'gene':[gene], 'upstream_gene':[upstream_gene], 'seq':[str(seq)], 
                                       'strand':[strnd]}, index=['gene'] )
 
     #print seqs.keys()
@@ -112,7 +112,7 @@ def filter_sequences( seqs, distance=params.distance_search, remove_repeats=True
          else:
              out = seqs.copy()
              for gene in seqs.gene:
-                 newseq = seqs_new[gene].seq.tostring()
+                 newseq = str(seqs_new[gene].seq)
                  out.seq[gene] = newseq
              seqs = out
 
@@ -136,7 +136,7 @@ def readFastaDNA( fname ):
     seqs = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
     handle.close()
 
-    out = [ pd.DataFrame( {'gene':[s.id], 'upstream_gene':[''], 'seq':[s.seq.tostring()], 'strand':['']}, 
+    out = [ pd.DataFrame( {'gene':[s.id], 'upstream_gene':[''], 'seq':[str(s.seq)], 'strand':['']}, 
                            index=['gene'] ) for s in seqs.values() ]
     out = pd.concat(out, ignore_index=True)
     out.index = out.gene
@@ -219,7 +219,7 @@ def getBgCounts_FAST_ACCURATE_BIGMEMORY( seqs, order=3, include_revComp=True ):
             if type(seqs) == np.ndarray:
                 seq = seqs[i]
             elif type(seqs) == dict: 
-                seq = seqs.values()[i].seq.tostring()
+                seq = str(seqs.values()[i].seq)
             seq_rev = reverse_complement(seq) if include_revComp else ''
             if ord == 0:
                 c1 = Counter([seq[i] for i in xrange(len(seq)-ord)]) ## xrange makes it ~10% faster and uses less memory

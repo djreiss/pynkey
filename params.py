@@ -39,20 +39,20 @@ except:
 ## set random seed here!
 import time
 import random
-random_seed = int(time.time()*1e6) ## 1403806278241227 ## this is good one for hpy
+random_seed = int(time.clock()*1e6) ## 1403806278241227 ## this is good one for hpy
 print 'RANDOM SEED:', random_seed
 np.random.seed( random_seed )
 random.seed( random_seed ) ## I dont know if I use non-numpy random, but do it here just in case
 
-#organism = 'Hpy'
-organism = 'Eco'
+organism = 'Hpy'
+#organism = 'Eco'
 #organism = 'Sce'
 #organism = 'Mpn'
 
 try:
     organism = options.organism
 except:
-    organism = 'Eco'
+    None ##organism = 'Eco'
 
 print 'ORGANISM:', organism
 

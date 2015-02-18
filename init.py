@@ -180,7 +180,7 @@ def load_genome(organism):
     print len(genome_seqs)
 
     ## TODO: can use carray to compress the genome seq in memory:
-    ##b = carray.carray(np.array(list(genome_seqs.values()[0].seq.tostring())))
+    ##b = carray.carray(np.array(list(str(genome_seqs.values()[0]))))
     return genome_seqs
 
 def load_annos(organism):

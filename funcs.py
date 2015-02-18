@@ -24,18 +24,18 @@ def matrix_residue( rats, weaveIt=True ):
         logging.warning( "COULD NOT COMPUTE RESIDUE" )
         return 1.0
 
+    if weaveIt:
+        average_r = weaved.fast_resid(rats)
+        return average_r
+
     ##rats = rats.values ## do it all in numpy - faster
-
-    if not weaveIt:
-        d_rows = np.nanmean(rats, 1) ##rats.mean(1)
-        d_cols = np.nanmean(rats, 0) ##rats.mean(0)
-        d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
-        rats = rats + d_all - np.add.outer( d_rows, d_cols )
-        ## another way of doing this, but about the same speed:
-        ##rats = (rats+d_all-d_cols).T-d_rows
-        average_r = np.nanmean( np.abs(rats) )
-
-    average_r = weaved.fast_resid(rats)
+    d_rows = np.nanmean(rats, 1) ##rats.mean(1)
+    d_cols = np.nanmean(rats, 0) ##rats.mean(0)
+    d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
+    rats = rats + d_all - np.add.outer( d_rows, d_cols )
+    ## another way of doing this, but about the same speed:
+    ##rats = (rats+d_all-d_cols).T-d_rows
+    average_r = np.nanmean( np.abs(rats) )
     return average_r
 
 def matrix_var( rats, var_add=0.1 ):
