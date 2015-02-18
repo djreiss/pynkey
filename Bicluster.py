@@ -387,6 +387,7 @@ class bicluster:
         return self
 
     def to_dataFrame( self ):
+        """Actually a single-line dataframe that can be concat-ed in clusters_to_dataFrame()"""
         b = clusters[k]
         out_r = pd.DataFrame( { 
             'k': [self.k],
