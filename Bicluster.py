@@ -84,7 +84,7 @@ class bicluster:
         ##    return 1.0
         out = funcs.matrix_residue( rats.values )
         if normalize:
-            out = out / np.nanmean( np.abs( rats.values ) ) ##, 2.0 ) ) ## up-weight highly expressed conditions
+            out /= np.nanmean( np.abs( rats.values ) ) ##, 2.0 ) ) ## up-weight highly expressed conditions
         return out
 
     ## Note: how to profile this in ipython:
@@ -110,7 +110,7 @@ class bicluster:
         is_in = np.in1d( all_genes, rows )
         rats = in_rats.ix[ :, cols ]
         resid = funcs.matrix_residue( rats.ix[ rows ].values )
-        resid = resid / np.nanmean( np.power( rats.values, 2.0 ) ) ## up-weight highly expressed conditions?
+        resid /= np.nanmean( np.power( rats.values, 2.0 ) ) ## up-weight highly expressed conditions?
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
             if not is_inRats[i]:
@@ -120,7 +120,7 @@ class bicluster:
             rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
             rats2 = rats.ix[ rows2 ].values
             new_resid = funcs.matrix_residue( rats2 )
-            new_resid = new_resid / np.nanmean( np.power( rats2, 2.0 ) ) ## up-weight highly expressed conditions?
+            new_resid /= np.nanmean( np.power( rats2, 2.0 ) ) ## up-weight highly expressed conditions?
             all_resids[i] = new_resid
         return all_resids - resid
 
