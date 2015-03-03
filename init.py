@@ -23,6 +23,11 @@ def init( from_pickle_file=None ):
     #global ratios, genome_seqs, anno, op_table, string_net, allSeqs_fname, all_bgFreqs, all_genes
     #global pynkey_code, clusters, endTime
 
+    try:
+        os.mkdir( params.output_dir )
+    except:
+        print 'Cannot mkdir ' + params.output_dir
+
     if from_pickle_file is not None:
         from funcs import load_checkpoint
         import logging
@@ -31,7 +36,6 @@ def init( from_pickle_file=None ):
         print str(glb.startTime)
 
     else:
-
         glb.ratios, glb.genome_seqs, glb.anno, glb.op_table, glb.string_net, glb.allSeqs_fname, \
             glb.all_bgFreqs, glb.all_genes = \
             pynkey_init(params.organism, params.k_clust, params.ratios_file)

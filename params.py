@@ -1,4 +1,5 @@
 import sys
+import os
 
 import numpy as np
 
@@ -46,7 +47,7 @@ all_genes_option = 'only_in_expression_data' ## 'all'
 output_dir = './output/'
 
 def parse_args():
-    global organism, k_clust, nthreads
+    global organism, k_clust, nthreads, output_dir
     global max_resid_weight, max_motif_weight, max_network_weight, max_volume_weight, max_clusters_per_gene_weight
     options = None
 
@@ -96,7 +97,7 @@ def parse_args():
             None ##organism = 'Eco'
 
         try:
-            output = options.output_dir
+            output_dir = options.output_dir
         except:
             None
             
@@ -147,10 +148,7 @@ def init_args():
 
     print k_clust
 
-    try:
-        os.mkdir( output_dir )
-    except:
-        print 'Cannot mkdir ' + output_dir
+    print 'OUTPUT:', output_dir
 
     #if undefined('ratios'):
     ratios_file = './' + organism + '/ratios.tsv.gz'
