@@ -92,7 +92,8 @@ class bicluster:
     ## %lprun -f funcs.matrix_residue Bicluster.bicluster.compute_residue_deltas(clust,ratios,all_genes)
     ##    or
     ## %lprun -f Bicluster.bicluster.compute_residue_deltas Bicluster.bicluster.compute_residue_deltas(clust,ratios,all_genes)
-    def compute_residue_deltas( self, ratios, all_genes, actually_cols=False ):
+    ## weaving it is a bit faster but only marginally when used in this function
+    def compute_residue_deltas( self, ratios, all_genes, actually_cols=False, weaveIt=False ):
         if not actually_cols:
             if len(self.rows) <= 0:
                 return np.repeat( -0.1, len(all_genes) )
@@ -109,7 +110,7 @@ class bicluster:
             is_inRats = np.in1d( all_genes, ratios.columns.values )
         is_in = np.in1d( all_genes, rows )
         rats = in_rats.ix[ :, cols ]
-        resid = funcs.matrix_residue( rats.ix[ rows ].values )
+        resid = funcs.matrix_residue( rats.ix[ rows ].values, weaveIt )
         resid /= np.nanmean( np.power( rats.values, 2.0 ) ) ## up-weight highly expressed conditions?
         all_resids = np.zeros( len( all_genes ), float )
         for i in xrange(len(all_genes)):
@@ -119,7 +120,7 @@ class bicluster:
             r = all_genes[i]
             rows2 = rows[ rows != r ] if is_in[i] else np.append( rows, r )
             rats2 = rats.ix[ rows2 ].values
-            new_resid = funcs.matrix_residue( rats2 )
+            new_resid = funcs.matrix_residue( rats2, weaveIt )
             new_resid /= np.nanmean( np.power( rats2, 2.0 ) ) ## up-weight highly expressed conditions?
             all_resids[i] = new_resid
         return all_resids - resid
@@ -388,7 +389,6 @@ class bicluster:
 
     def to_dataFrame( self ):
         """Actually a single-line dataframe that can be concat-ed in clusters_to_dataFrame()"""
-        b = clusters[k]
         out_r = pd.DataFrame( { 
             'k': [self.k],
             'rows': ','.join(self.rows),

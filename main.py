@@ -1,7 +1,9 @@
 ## MAIN PROGRAM
 
 import numpy as np
-from params import n_iters,nthreads,organism
+
+import params
+from params import n_iters ##,nthreads,organism
 import funcs
 import globals as glb
 import init
@@ -10,16 +12,16 @@ import floc
 
 def do_saveall(iter=None):
     import logging
-    org = organism
+    org = params.organism
     if iter is not None:
-        org = '%s_%04d' % (organism,iter)
+        org = '%s_%04d' % (params.organism,iter)
 
-    logging.info( 'Writing out clusters to output/clusters_%s.tsv' % org )
-    glb.stats_df.to_csv( 'output/stats_%s.tsv' % org, sep='\t', na_rep='NA' )
+    logging.info( 'Writing out clusters to %s/clusters_%s.tsv' % (params.output_dir, org) )
+    glb.stats_df.to_csv( '%s/stats_%s.tsv' % (params.output_dir, org), sep='\t', na_rep='NA' )
     clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
-    clusters_tab.to_csv( 'output/clusters_%s.tsv' % org, sep='\t', na_rep='NA' )
-    logging.info( 'Writing out everything to output/%s.pkl' % org )
-    funcs.checkpoint( 'output/%s.pkl' % org )
+    clusters_tab.to_csv( '%s/clusters_%s.tsv' % (params.output_dir, org), sep='\t', na_rep='NA' )
+    logging.info( 'Writing out everything to %s/%s.pkl' % (params.output_dir, org) )
+    funcs.checkpoint( '%s/%s.pkl' % (params.output_dir, org) )
 
 def run_pynkey(iter):
     import os.path
@@ -59,15 +61,16 @@ def finish():
     print str(glb.endTime - glb.startTime) + ' seconds since initialization'
 
     kInd = 1
-    if organism == 'Hpy' or organism == 'Eco':
+    if params.organism == 'Hpy' or params.organism == 'Eco':
         kInd = funcs.clusters_w_func('flagell', glb.clusters, glb.anno)[0]
 
     b = glb.clusters[kInd]
     print b.meme_out
 
-    clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
-    clusters_tab.to_csv( 'output/%s_clusters.tsv' % organism, sep='\t', na_rep='NA' )
-    funcs.checkpoint( 'output/%s.pkl' % organism )
+    ##clusters_tab = funcs.clusters_to_dataFrame(glb.clusters)
+    ##clusters_tab.to_csv( '%s/%s_clusters.tsv' % (params.output_dir, params.organism), sep='\t', na_rep='NA' )
+    ##funcs.checkpoint( '%s/%s.pkl' % (params.output_dir, params.organism) )
+    do_saveall()
 
     tmp = np.array( bicluster.get_all_cluster_row_counts( glb.clusters, glb.all_genes ).values() )
     print np.sum(tmp==0), 'genes in no clusters'
@@ -80,21 +83,18 @@ def finish():
 # #@time gibbs_out = gibbs_site_sampler(seqs[:,2])     ## run gibbs sampler on most "flagellar-enriched" cluster
 # #@time gibbs_out2 = gibbs_site_sampler(seqs, gibbs_out["pssm"])
 
-
 if __name__ == '__main__':
+    params.parse_args()
+    params.init_args()
+
     if not init.IS_INITED:
         init.init()
 
     from Bicluster import fill_all_cluster_scores_par
 
-    try:
-        os.mkdir( 'output' )
-    except:
-        print 'Cannot mkdir ./output/'
-
     #clusters = fill_all_cluster_scores( clusters, all_genes, ratios, string_net, ratios.columns.values )    
     ## weird - if I move this to glb.py, then it gets locked up.
-    glb.clusters = fill_all_cluster_scores_par(glb.clusters, threads=nthreads)
+    glb.clusters = fill_all_cluster_scores_par(glb.clusters, threads=params.nthreads)
     stats_tmp = funcs.print_cluster_stats(glb.clusters, glb.ratios, 1, glb.startTime)
     glb.stats_df = glb.stats_df.append( stats_tmp )
 

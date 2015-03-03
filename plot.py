@@ -27,13 +27,16 @@ def setup_text_plots(fontsize=8, usetex=True):
 
 def plot_stats():
     stats = globals.stats_df
-    print stats.tail()
+    ##print stats.tail()
 
 ## This is a good intro to pandas dataframes
 ## http://pandas.pydata.org/pandas-docs/stable/10min.html
 
 ## try plotting it. using astroML/book_figures/chapter1/fig_SDSS_imaging.py as an example
 ## this fuinction sets up the plots to look the same as in the astroML text
+
+## Quick and dirty way to plot:
+## glb.stats_df[['iter','ROWS','COLS','RESID','STRING_DENS','MEME_PVAL','CLUSTS_PER_ROW','CLUSTS_PER_COL','N_MOVES','N_IMPROVEMENTS','N_CLUSTS_CHANGED_ROWS','N_CLUSTS_CHANGED_COLS']].plot(x='iter',subplots=True, layout=(3,4), figsize=(8,8), sharex=True, legend=False)
         
     setup_text_plots(fontsize=8, usetex=True)
 

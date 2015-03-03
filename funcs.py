@@ -17,7 +17,7 @@ def re_seed_all_clusters_if_necessary( clusters, ratios, all_genes, min_rows=3, 
     return clusters
 
 ## rats needs to be a numpy array (not dataframe - so use df.values if necessary)
-def matrix_residue( rats, weaveIt=True ):
+def matrix_residue( rats, weaveIt=False ):
     if np.ndim( rats ) < 2 or np.size( rats, 0 ) <= 1 or np.size( rats, 1 ) <= 1: ## or \
             ##np.mean( rats.isnull().values ) > 0.95:
         import logging
@@ -32,7 +32,8 @@ def matrix_residue( rats, weaveIt=True ):
     d_rows = np.nanmean(rats, 1) ##rats.mean(1)
     d_cols = np.nanmean(rats, 0) ##rats.mean(0)
     d_all = np.nanmean(d_rows) ##d_rows.mean() ## pandas default is to ignore nan's
-    rats = rats + d_all - np.add.outer( d_rows, d_cols )
+    d_all -= np.add.outer( d_rows, d_cols )
+    rats = rats + d_all ##- np.add.outer( d_rows, d_cols )
     ## another way of doing this, but about the same speed:
     ##rats = (rats+d_all-d_cols).T-d_rows
     average_r = np.nanmean( np.abs(rats) )
